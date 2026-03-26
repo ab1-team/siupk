@@ -4,14 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes; 
 use \Awobaz\Compoships\Compoships;
 use Session;
 
 class Transaksi extends Model
 {
-    use HasFactory, Compoships;
+    use HasFactory, Compoships, SoftDeletes; 
+
     protected $table;
-    public $timestamps = false;
+    public $timestamps = true; 
 
     protected $primaryKey = 'idt';
     protected $guarded = ['idt'];
@@ -19,6 +21,19 @@ class Transaksi extends Model
     public function __construct()
     {
         $this->table = 'transaksi_' . Session::get('lokasi');
+    }
+
+    public static function insert(array $values): bool
+    {
+        $now = now();
+        $values = array_map(function ($item) use ($now) {
+            return array_merge([
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], $item);
+        }, $values);
+
+        return parent::insert($values);
     }
 
     public function angs()
@@ -50,6 +65,7 @@ class Transaksi extends Model
     {
         return $this->belongsTo(Simpanan::class, 'id_simp', 'id');
     }
+
     public function realSimpanan()
     {
         return $this->hasOne(RealSimpanan::class, 'idt', 'idt');
