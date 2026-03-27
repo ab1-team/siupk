@@ -23,19 +23,6 @@ class Transaksi extends Model
         $this->table = 'transaksi_' . Session::get('lokasi');
     }
 
-    public static function insert(array $values): bool
-    {
-        $now = now();
-        $values = array_map(function ($item) use ($now) {
-            return array_merge([
-                'created_at' => $now,
-                'updated_at' => $now,
-            ], $item);
-        }, $values);
-
-        return parent::insert($values);
-    }
-
     public function angs()
     {
         return $this->hasMany(Transaksi::class, ['idtp', 'tgl_transaksi'], ['idtp', 'tgl_transaksi']);
