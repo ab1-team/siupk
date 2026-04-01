@@ -2,9 +2,7 @@
   "ExpandedNodes": [
     "",
     "\\app",
-    "\\app\\Models",
-    "\\resources\\views\\perguliran",
-    "\\resources\\views\\perguliran\\dokumen"
+    "\\app\\Models"
   ],
   "SelectedNode": "\\app\\Models\\Transaksi.php",
   "PreviewInSolutionExplorer": false

@@ -158,7 +158,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Document",
@@ -187,6 +187,10 @@
               "IsPinned": true
             },
             {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "Transaksi.php",
@@ -194,7 +198,7 @@
               "RelativeDocumentMoniker": "app\\Models\\Transaksi.php",
               "ToolTip": "C:\\laragon\\www\\siupk\\app\\Models\\Transaksi.php",
               "RelativeToolTip": "app\\Models\\Transaksi.php",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAsAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002338|",
               "WhenOpened": "2026-03-26T08:31:58.948Z",
               "EditorCaption": ""
@@ -209,12 +213,7 @@
               "RelativeToolTip": "database\\migrations\\2026_03_26_150937_add_timestamps_softdelete_to_transaksi.php",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAYAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002338|",
-              "WhenOpened": "2026-03-26T08:11:52.706Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+              "WhenOpened": "2026-03-26T08:11:52.706Z"
             },
             {
               "$type": "Document",
@@ -226,8 +225,7 @@
               "RelativeToolTip": "resources\\views\\perguliran\\dokumen\\asuransi.blade.php",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABsAAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002338|",
-              "WhenOpened": "2026-02-18T06:35:44.859Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-02-18T06:35:44.859Z"
             },
             {
               "$type": "Document",

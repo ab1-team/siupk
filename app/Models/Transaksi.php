@@ -18,8 +18,9 @@ class Transaksi extends Model
     protected $primaryKey = 'idt';
     protected $guarded = ['idt'];
 
-    public function __construct()
+    public function __construct(array $attributes = [])
     {
+        parent::__construct($attributes);
         $this->table = 'transaksi_' . Session::get('lokasi');
     }
 
