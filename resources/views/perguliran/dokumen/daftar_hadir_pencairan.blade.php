@@ -13,6 +13,16 @@
     }
 
     $no = 0;
+    $jumlah_anggota = $pinkel->pinjaman_anggota->count();
+
+    if ($jumlah_anggota == 17 || $jumlah_anggota == 18) {
+    $row_height = 23;
+    } elseif ($jumlah_anggota == 19 || $jumlah_anggota == 20) {
+        $row_height = 21;
+    } else {
+        $row_height = 25;
+    }
+
 @endphp
 
 @extends('perguliran.dokumen.layout.base')
@@ -30,7 +40,7 @@
             <td height="5"></td>
         </tr>
     </table>
-    <table border="0" width="100%" align="center"cellspacing="0" cellpadding="0" style="font-size: 11px;">
+    <table border="0" width="100%" align="center" cellspacing="0" cellpadding="0" style="font-size: 11px;">
         <tr>
             <td width="70">Nomor Proposal</td>
             <td align="center" width="5">:</td>
@@ -65,7 +75,7 @@
             <td colspan="6">&nbsp;</td>
         </tr>
     </table>
-    <table border="1" width="100%" align="center"cellspacing="0" cellpadding="0" style="font-size: 11px;">
+    <table border="1" width="100%" align="center" cellspacing="0" cellpadding="0" style="font-size: 11px;">
         <tr>
             <th width="10" height="20" align="center">No</th>
             <th width="130" align="center">Nama Lengkap</th>
@@ -78,7 +88,7 @@
                 $no = $loop->iteration;
             @endphp
             <tr>
-                <td height="25" align="center"><b>{{ $no }}.</b></td>
+                <td height="{{ $row_height }}" align="center"><b>{{ $no }}.</b></td>
                 <td>{{ $pa->anggota->namadepan }}</td>
                 <td align="center">Pemanfaat</td>
                 <td>{{ $pa->anggota->alamat }}</td>
@@ -88,7 +98,7 @@
 
         @for ($i = $no + 1; $i <= 15; $i++)
             <tr>
-                <td height="25" align="center"><b>{{ $i }}.</b></td>
+                <td height="{{ $row_height }}" align="center"><b>{{ $i }}.</b></td>
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
@@ -96,7 +106,7 @@
             </tr>
         @endfor
     </table>
-    <table border="0" width="100%" align="center"cellspacing="0" cellpadding="0" style="font-size: 11px;">
+    <table border="0" width="100%" align="center" cellspacing="0" cellpadding="0" style="font-size: 11px;">
         <tr>
             <td colspan="2">&nbsp;</td>
         </tr>
