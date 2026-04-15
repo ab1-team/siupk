@@ -132,7 +132,6 @@
 
                                 $kom_realisasi = 0;
                                 
-                                // PERBAIKAN: Untuk rekap tahunan, gunakan logika akumulasi yang berbeda
                                 $is_rekap_tahunan = count($bulan_tampil) == 0;
                             @endphp
 
@@ -141,11 +140,9 @@
 
                                 @foreach ($rek->kom_saldo as $saldo)
                                     @php
-                                        // Inisialisasi variabel untuk menghindari undefined
                                         $saldo_rencana = 0;
                                         $saldo_realisasi = 0;
                                         
-                                        // PERBAIKAN: Logika perhitungan untuk rekap tahunan dan triwulan
                                         if ($is_rekap_tahunan) {
                                             // Untuk rekap tahunan, ambil nilai kumulatif bulan terakhir (Desember)
                                             if ($saldo->eb) {
@@ -189,7 +186,6 @@
                                                 $saldo_rencana = $saldo->eb->jumlah;
                                             }
 
-                                            // Pastikan key bulan ada di array
                                             if (!isset($rencana[$saldo->bulan])) {
                                                 $rencana[$saldo->bulan] = 0;
                                             }
@@ -200,15 +196,17 @@
                                             $rencana[$saldo->bulan] += $saldo_rencana;
                                             $realisasi[$saldo->bulan] += $saldo_realisasi;
 
-                                            $total_rencana += $saldo_rencana;
-                                            $total_realisasi += $saldo_realisasi;
+                                            // PERBAIKAN: Hanya akumulasi total untuk bulan yang ditampilkan
+                                            if (in_array($saldo->bulan, $bulan_tampil)) {
+                                                $total_rencana += $saldo_rencana;
+                                                $total_realisasi += $saldo_realisasi;
+                                            }
 
                                             $kom_rencana_bulan_lalu += $saldo_rencana;
                                         }
                                     @endphp
 
                                     @php
-                                        // Untuk triwulan, isi kom_realisasi_bulan_lalu berdasarkan bulan sebelum bulan_tampil pertama
                                         if (!$is_triwulan && !empty($bulan_tampil)) {
                                             $bulan_pertama_tampil = min($bulan_tampil);
                                             $bulan_sebelumnya = $bulan_pertama_tampil - 1;
@@ -242,34 +240,27 @@
                                 <td class="t l b" align="right">
                                     {{ number_format($total_rencana, 2) }}
                                 </td>
+                                {{-- PERBAIKAN: Hapus + $kom_realisasi karena total sudah dihitung hanya dari bulan_tampil --}}
                                 <td class="t l b r" align="right">
-                                    @if ($is_rekap_tahunan)
-                                        {{ number_format($total_realisasi, 2) }}
-                                    @else
-                                        {{ number_format($total_realisasi + $kom_realisasi, 2) }}
-                                    @endif
+                                    {{ number_format($total_realisasi, 2) }}
                                 </td>
                             </tr>
                         @endforeach
                     @endforeach
                 @endforeach
                 @php
-                    // Hitung total untuk akumulasi pendapatan dan beban
                     $total_rencana_akun1 = 0;
                     $total_realisasi_akun1 = 0;
                     
                     if ($is_rekap_tahunan) {
-                        // Untuk rekap tahunan, ambil total realisasi dan rencana dari setiap rekening
                         foreach ($lev1->akun2 as $lev2) {
                             foreach ($lev2->akun3 as $lev3) {
                                 foreach ($lev3->rek as $rek) {
                                     foreach ($rek->kom_saldo as $saldo) {
-                                        // Akumulasi rencana
                                         if ($saldo->eb) {
                                             $total_rencana_akun1 += $saldo->eb->jumlah;
                                         }
                                         
-                                        // Ambil realisasi bulan terakhir (Desember)
                                         if ($saldo->bulan == 12) {
                                             $saldo_realisasi = floatval($saldo->kredit) - floatval($saldo->debit);
                                             if ($rek->lev1 == 5) {
@@ -282,7 +273,6 @@
                             }
                         }
                         
-                        // PERBAIKAN: Akumulasi untuk perhitungan surplus
                         if ($lev1->lev1 == 4) {
                             $kom_realisasi_pendapatan += $total_realisasi_akun1;
                             $kom_rencana_pendapatan += $total_rencana_akun1;
@@ -292,7 +282,6 @@
                         }
                     } else {
                         foreach ($rencana as $i => $val) {
-                            // Pastikan key ada di array target
                             if (!isset($rencana_pendapatan[$i])) {
                                 $rencana_pendapatan[$i] = 0;
                             }
@@ -324,6 +313,16 @@
                         }
                     }
 
+                    // PERBAIKAN: Hitung total akun1 hanya dari bulan yang ditampilkan
+                    $total_rencana_akun1_tampil = 0;
+                    $total_realisasi_akun1_tampil = 0;
+                    foreach ($bulan_hitung as $val) {
+                        if (in_array($val, $bulan_tampil)) {
+                            $total_rencana_akun1_tampil += isset($rencana[$val]) ? $rencana[$val] : 0;
+                            $total_realisasi_akun1_tampil += isset($realisasi[$val]) ? $realisasi[$val] : 0;
+                        }
+                    }
+
                     $kom_realisasi_akun1 = 0;
                 @endphp
 
@@ -343,18 +342,20 @@
                             <td align="right" class="t l b">{{ number_format(isset($realisasi[$val]) ? $realisasi[$val] : 0, 2) }}</td>
                         @endif
                     @endforeach
+
+                    {{-- PERBAIKAN: Total baris akun1 hanya dari bulan yang ditampilkan --}}
                     <td align="right" class="t l b">
                         @if ($is_rekap_tahunan)
                             {{ number_format($total_rencana_akun1, 2) }}
                         @else
-                            {{ number_format($kom_rencana_bulan_lalu, 2) }}
+                            {{ number_format($total_rencana_akun1_tampil, 2) }}
                         @endif
                     </td>
                     <td align="right" class="t l b r">
                         @if ($is_rekap_tahunan)
                             {{ number_format($total_realisasi_akun1, 2) }}
                         @else
-                            {{ number_format($kom_realisasi_bulan_lalu + $kom_realisasi_akun1, 2) }}
+                            {{ number_format($total_realisasi_akun1_tampil, 2) }}
                         @endif
                     </td>
                 </tr>
@@ -402,18 +403,32 @@
                                 @endif
                             @endforeach
 
+                            {{-- PERBAIKAN: Surplus total hanya dari bulan yang ditampilkan --}}
+                            @php
+                                $total_surplus_rencana_tampil = 0;
+                                $total_surplus_realisasi_tampil = 0;
+                                foreach ($bulan_hitung as $val) {
+                                    if (in_array($val, $bulan_tampil)) {
+                                        $total_surplus_rencana_tampil += (isset($rencana_pendapatan[$val]) ? $rencana_pendapatan[$val] : 0)
+                                            - (isset($rencana_beban[$val]) ? $rencana_beban[$val] : 0);
+                                        $total_surplus_realisasi_tampil += (isset($realisasi_pendapatan[$val]) ? $realisasi_pendapatan[$val] : 0)
+                                            - (isset($realisasi_beban[$val]) ? $realisasi_beban[$val] : 0);
+                                    }
+                                }
+                            @endphp
+
                             <th width="8%" class="t l b" align="right">
                                 @if ($is_rekap_tahunan)
                                     {{ number_format($kom_rencana_pendapatan - $kom_rencana_beban, 2) }}
                                 @else
-                                    {{ number_format(($kom_rencana_pendapatan + $surplus_rencana_pendapatan) - ($kom_rencana_beban + $surplus_rencana_beban), 2) }}
+                                    {{ number_format($total_surplus_rencana_tampil, 2) }}
                                 @endif
                             </th>
                             <th width="8%" class="t l b r" align="right">
                                 @if ($is_rekap_tahunan)
                                     {{ number_format($kom_realisasi_pendapatan - $kom_realisasi_beban, 2) }}
                                 @else
-                                    {{ number_format(($kom_realisasi_pendapatan + $surplus_realisasi_pendapatan) - ($kom_realisasi_beban + $surplus_realisasi_beban), 2) }}
+                                    {{ number_format($total_surplus_realisasi_tampil, 2) }}
                                 @endif
                             </th>
                         </tr>
