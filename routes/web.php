@@ -343,7 +343,7 @@ Route::get('/link', function () {
     symlink($target, $shortcut);
 });
 
-Route::get('/user', function () {
+Route::get('/uname', function () {
     $kec = Kecamatan::where('web_kec', request()->getHost())->orwhere('web_alternatif', request()->getHost())->with('kabupaten')->first();
     $users = User::where('lokasi', $kec->id)->with('l', 'j')->orderBy('level', 'ASC')->orderBy('jabatan', 'ASC')->get();
 
