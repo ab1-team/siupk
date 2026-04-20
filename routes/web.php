@@ -399,6 +399,7 @@ Route::get('/simpanan/get-transaksi', [SimpananController::class, 'getTransaksi'
 
 Route::post('/simpanan/simpan-transaksi', [SimpananController::class, 'simpanTransaksi']);
 
+Route::post('/simpanan/generate/{cif}', [SimpananController::class, 'generateSimpanan2'])->middleware('auth');
 Route::get('/simpanan/generate', [SimpananController::class, 'generateSimpanan'])->middleware('auth')->name('simpanan.generate');
 Route::get('/simpanan/generate-bunga', [SimpananController::class, 'generateBunga'])->name('simpanan.generate-bunga');
 Route::resource('/simpanan', SimpananController::class)->middleware('auth');

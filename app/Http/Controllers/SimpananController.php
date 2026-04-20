@@ -503,6 +503,81 @@ public function cetakPadaBuku($idt)
         $title = 'generate Simpanan';
         return view('simpanan.generate', compact('title', 'total', 'start', 'per_page'));
     }
+    
+    public function generateSimpanan2($cif)
+    {
+        try {
+            // Hapus semua real_simpanan untuk CIF ini
+            RealSimpanan::where('cif', $cif)->delete();
+
+            // Ambil semua transaksi simpanan, urutkan sama persis dengan generate_simpanan.php
+            $transaksis = Transaksi::where('id_simp', $cif)
+                ->orderBy('tgl_transaksi', 'asc')
+                ->orderBy('urutan', 'asc')
+                ->orderBy('idt', 'asc')
+                ->get();
+
+            $sum = 0;
+            foreach ($transaksis as $trx) {
+                $real_d = 0;
+                $real_k = 0;
+                $kode   = 0;
+
+                if (
+                    str_starts_with($trx->rekening_kredit, '2.1.04.') ||
+                    str_starts_with($trx->rekening_kredit, '3.1.01.')
+                ) {
+                    $real_k = $trx->jumlah;
+                    $sum   += $trx->jumlah;
+
+                    if ($trx->rekening_debit === '1.1.01.01') {
+                        $kode = ($sum != 0) ? 2 : 1;
+                    }
+                    if (str_starts_with($trx->rekening_debit, '5.3.04.')) {
+                        $kode = 4;
+                    }
+                } elseif (
+                    str_starts_with($trx->rekening_debit, '2.1.04.') ||
+                    str_starts_with($trx->rekening_debit, '3.1.01.')
+                ) {
+                    $real_d = $trx->jumlah;
+                    $sum   -= $trx->jumlah;
+
+                    if ($trx->rekening_kredit === '1.1.01.01') {
+                        $kode = 3;
+                    }
+                    if (str_starts_with($trx->rekening_kredit, '4.1.03.')) {
+                        $kode = 5;
+                    }
+                    if ($trx->rekening_kredit === '2.1.03.01') {
+                        $kode = 10;
+                    }
+                }
+
+                RealSimpanan::create([
+                    'cif'            => $cif,
+                    'idt'            => $trx->idt,
+                    'kode'           => $kode,
+                    'tgl_transaksi'  => $trx->tgl_transaksi,
+                    'real_d'         => $real_d,
+                    'real_k'         => $real_k,
+                    'sum'            => $sum,
+                    'lu'             => now(),
+                    'id_user'        => auth()->id(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Generate real simpanan berhasil. ' . $transaksis->count() . ' transaksi diproses.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     
     public function generateBunga()
