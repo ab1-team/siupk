@@ -49,7 +49,7 @@ class PelaporanController extends Controller
     public function subLaporan($file)
     {
         if ($file == 3) {
-            $rekening = Rekening::where('kode_akun', '!=', '3.2.02.01')->orderBy('kode_akun', 'ASC')->get();
+            $rekening = Rekening::aktif()->where('kode_akun', '!=', '3.2.02.01')->orderBy('kode_akun', 'ASC')->get();
             foreach ($rekening as $rek) {
                 $data[] = [
                     'title' => $rek->kode_akun . '. ' . $rek->nama_akun,
@@ -232,6 +232,10 @@ class PelaporanController extends Controller
 
         $data['tgl_kondisi'] = $data['tahun'] . '-' . $data['bulan'] . '-' . $data['hari'];
         $data['tanggal_kondisi'] = $kec->nama_kec . ', ' . Tanggal::tglLatin($data['tgl_kondisi']);
+
+        // Simpan tgl_kondisi ke session untuk digunakan oleh scope Rekening::aktif()
+        Session::put('tgl_kondisi_laporan', $data['tgl_kondisi']);
+
 
         $file = $request->laporan;
         if ($file == 3) {
@@ -1600,7 +1604,7 @@ class PelaporanController extends Controller
         }
 
         $data['keuangan'] = $keuangan;
-        $data['rekening'] = Rekening::where('lev1', '3')->with([
+        $data['rekening'] = Rekening::aktif()->where('lev1', '3')->with([
             'kom_saldo' => function ($query) use ($data) {
                 $query->where('tahun', $data['tahun'])->where(function ($query) use ($data) {
                     $query->where('bulan', '0')->orwhere('bulan', $data['bulan']);
@@ -1784,8 +1788,8 @@ class PelaporanController extends Controller
             }
         }
 
-        $data['rek'] = Rekening::where('kode_akun', $data['kode_akun'])->first();
-        $data['kode_akun'] = Rekening::where([
+        $data['rek'] = Rekening::aktif()->where('kode_akun', $data['kode_akun'])->first();
+        $data['kode_akun'] = Rekening::aktif()->where([
             ['lev1', $data['rek']->lev1],
             ['lev2', $data['rek']->lev2],
             ['lev3', $data['rek']->lev3],
@@ -1832,7 +1836,7 @@ class PelaporanController extends Controller
         }
 
         $data['keuangan'] = $keuangan;
-        $data['rekening'] = Rekening::orderBy('kode_akun', 'ASC')->with([
+        $data['rekening'] = Rekening::aktif()->orderBy('kode_akun', 'ASC')->with([
             'kom_saldo' => function ($query) use ($data) {
                 $query->where('tahun', $data['tahun'])->where(function ($query) use ($data) {
                     $query->where('bulan', '0')->orwhere('bulan', $data['bulan']);
@@ -3602,7 +3606,7 @@ private function pemanfaat_aktif(array $data)
             $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
         }
 
-        $data['inventaris'] = Rekening::where('kode_akun', 'LIKE', '1.2.01%')
+        $data['inventaris'] = Rekening::aktif()->where('kode_akun', 'LIKE', '1.2.01%')
             ->with([
                 'inventaris' => function ($query) use ($data) {
                     $query->where([
@@ -3640,7 +3644,7 @@ private function pemanfaat_aktif(array $data)
             $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
         }
 
-        $data['inventaris'] = Rekening::where('kode_akun', 'LIKE', '1.2.03%')
+        $data['inventaris'] = Rekening::aktif()->where('kode_akun', 'LIKE', '1.2.03%')
             ->with([
                 'inventaris' => function ($query) use ($data) {
                     $query->where([
@@ -4136,12 +4140,12 @@ private function pinjaman_anggota_hapus(array $data)
 
         $data['tahun_tb'] = $thn;
         $data['surplus'] = $keuangan->laba_rugi(($data['tahun'] - 1) . '-13-00');
-        $data['cr'] = Rekening::where('kode_akun', 'like', '1.1.04.%')
+        $data['cr'] = Rekening::aktif()->where('kode_akun', 'like', '1.1.04.%')
             ->withSum(['trx_kredit' => function ($query) use ($thn) {
                 $query->whereYear('tgl_transaksi', $thn);
             }], 'jumlah')
             ->get();
-        $data['rekening'] = Rekening::where('kode_akun', 'like', '2.1.01%')
+        $data['rekening'] = Rekening::aktif()->where('kode_akun', 'like', '2.1.01%')
             ->withSum(['trx_kredit' => function ($query) use ($thn) {
                 $query->whereYear('tgl_transaksi', $thn);
             }], 'jumlah')
@@ -4177,7 +4181,7 @@ private function pinjaman_anggota_hapus(array $data)
             ['tahun', $thn],
             ['bulan', '13']
         ])->with('rek')->orderBy('kode_akun', 'ASC')->get();
-        $data['rek'] = Rekening::where('kode_akun', '3.2.01.01')->first();
+        $data['rek'] = Rekening::aktif()->where('kode_akun', '3.2.01.01')->first();
 
         $data['tgl_transaksi'] = $thn . '-12-31';
         $data['laporan'] = 'Jurnal Awal Tahun';

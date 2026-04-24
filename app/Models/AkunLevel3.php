@@ -17,6 +17,6 @@ class AkunLevel3 extends Model
 
     public function rek()
     {
-        return $this->hasMany(Rekening::class, 'parent_id', 'id')->orderBy('kode_akun', 'ASC');
+        return $this->hasMany(Rekening::class, 'parent_id', 'id')->aktif()->orderBy('kode_akun', 'ASC');
     }
 }

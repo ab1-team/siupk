@@ -383,13 +383,13 @@ class PinjamanKelompokController extends Controller
 
         $jenis_jasa = JenisJasa::all();
         $sistem_angsuran = SistemAngsuran::all();
-        $sumber_bayar = Rekening::where([
+        $sumber_bayar = Rekening::aktif()->where([
             ['lev1', '1'],
             ['lev2', '1'],
             ['lev3', '1'],
             ['lev4', $perguliran->jpp->kode + 1]
         ])->orderBy('kode_akun', 'asc')->get();
-        $debet = Rekening::where([
+        $debet = Rekening::aktif()->where([
             ['lev1', '1'],
             ['lev2', '1'],
             ['lev3', '3'],

@@ -1396,29 +1396,29 @@ class TransaksiController extends Controller
         $label1 = 'Pilih Sumber Dana';
 
         if ($id == 1) {
-            $rek1 = Rekening::where(function ($query) {
+            $rek1 = Rekening::aktif()->where(function ($query) {
                 $query->where('lev1', '2')->orwhere('lev1', '3')->orwhere('lev1', '4');
             })->where([
                 ['kode_akun', 'NOT LIKE', '4.1.01%']
             ])->orderBy('kode_akun', 'ASC')->get();
 
-            $rek2 = Rekening::where('lev1', '1')->orderBy('kode_akun', 'ASC')->get();
+            $rek2 = Rekening::aktif()->where('lev1', '1')->orderBy('kode_akun', 'ASC')->get();
 
             $label2 = 'Disimpan Ke';
         } elseif ($id == 2) {
-            $rek1 = Rekening::where(function ($query) {
+            $rek1 = Rekening::aktif()->where(function ($query) {
                 $query->where('lev1', '1')->orwhere('lev1', '2');
             })->where([
                 ['kode_akun', 'NOT LIKE', '2.1.04%']
             ])->orderBy('kode_akun', 'ASC')->get();
 
-            $rek2 = Rekening::where('lev1', '2')->orwhere('lev1', '3')->orwhere('lev1', '5')->orderBy('kode_akun', 'ASC')->get();
+            $rek2 = Rekening::aktif()->where('lev1', '2')->orwhere('lev1', '3')->orwhere('lev1', '5')->orderBy('kode_akun', 'ASC')->get();
 
             $label2 = 'Keperluan';
         } elseif ($id == 3) {
-            $rek1 = Rekening::all();
+            $rek1 = Rekening::aktif()->get();
 
-            $rek2 = Rekening::all();
+            $rek2 = Rekening::aktif()->get();
 
             $label2 = 'Disimpan Ke';
         }

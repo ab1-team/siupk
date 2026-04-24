@@ -249,7 +249,7 @@ class Keuangan
                 }
             ])->get();
         } else {
-            $rekening = Rekening::where('kode_akun', 'like', '1.1.01%')->orwhere('kode_akun', 'like', '1.1.02%')->with([
+            $rekening = Rekening::aktif()->where('kode_akun', 'like', '1.1.01%')->orwhere('kode_akun', 'like', '1.1.02%')->with([
                 'kom_saldo' => function ($query) use ($thn, $bln) {
                     $query->where('tahun', $thn)->where(function ($query) use ($bln) {
                         $query->where('bulan', '0')->orwhere('bulan', $bln);
