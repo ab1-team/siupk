@@ -243,13 +243,17 @@
         <tr style="background: rgb(150, 150, 150); font-weight: bold;">
             <td colspan="4" height="14">5.4 Beban Pajak</td>
         </tr>
+        
+                @php
+                /*
         <tr style="background: rgb(230, 230, 230)">
             <td align="left">5.4.01.01. Taksiran PPh (0.5%) </td>
             <td align="right">{{ number_format($pph['bulan_lalu'], 2) }}</td>
             <td align="right">{{ number_format($pph['sekarang'] - $pph['bulan_lalu'], 2) }}</td>
             <td align="right">{{ number_format($pph['sekarang'], 2) }}</td>
         </tr>
-
+        */  
+        @endphp
         <tr>
             <td colspan="4" height="2"></td>
         </tr>
