@@ -242,6 +242,7 @@
                     $rdeb           = $trx['rekening_debit'];
                     $rkre           = $trx['rekening_kredit'];
 
+    
                     if(substr($rdeb, 0, 6) == '1.1.01' AND (substr($rkre, 0, 6) == '2.1.05' or substr($rkre, 0, 6) == '2.2.05' ) AND $str==1){  //setor awal
                         $kode = 1;
                         $str=2;
@@ -249,7 +250,7 @@
                         $kode = 2;
                     }elseif ((substr($rdeb, 0, 6) == '2.1.05' or substr($rdeb, 0, 6) == '2.2.05' ) AND substr($rkre, 0, 6) == '1.1.01') {    //tarik
                         $kode = 3;
-                    }elseif (substr($rdeb, 0, 6) == '5.2.01' AND (substr($rkre, 0, 6) == '2.1.05' or substr($rkre, 0, 6) == '2.2.05' )) {    //bunga
+                    }elseif ((substr($rdeb, 0, 6) == '5.2.01' or substr($rdeb, 0, 6) == '5.3.04') AND (substr($rkre, 0, 6) == '2.1.05' or substr($rkre, 0, 6) == '2.2.05' )) {    //bunga
                         $kode = 5;
                     }elseif ((substr($rdeb, 0, 6) == '2.1.05' or substr($rdeb, 0, 6) == '2.2.05' ) AND substr($rkre, 0, 6) == '2.1.03') {    //pajak
                         $kode = 6;

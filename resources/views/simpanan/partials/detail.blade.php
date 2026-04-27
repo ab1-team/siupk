@@ -171,26 +171,24 @@ $(".date").flatpickr({
     dateFormat: "d/m/Y"
 });
 
+function tableTransaksi(bulan, tahun) {
+    $.get('/simpanan/get-transaksi', {
+        cif: '{{ $nia->id }}',
+        bulan: bulan,
+        tahun: tahun
+    }, function(result) {
+        $('#transaksi-container').html(result);
+    }).fail(function(xhr, status, error) {
+        console.error("Error loading transactions:", error);
+        $('#transaksi-container').html('<p>Terjadi error pada Transaksi, silakan hubungi teknikal support untuk perbaikan data.</p>');
+    });
+}
+
 $(document).ready(function() {
     var currentDate = new Date();
-    var currentMonth = currentDate.getMonth() + 1; // getMonth() dimulai dari 0 (Januari), jadi tambahkan 1
-    var currentYear = currentDate.getFullYear();   // Mendapatkan tahun saat ini
-
-
+    var currentMonth = currentDate.getMonth() + 1; 
+    var currentYear = currentDate.getFullYear();  
     tableTransaksi(currentMonth, currentYear);
-
-    function tableTransaksi(bulan, tahun) {
-        $.get('/simpanan/get-transaksi', {
-            cif: '{{ $nia->id }}',
-            bulan: bulan,
-            tahun: tahun
-        }, function(result) {
-            $('#transaksi-container').html(result);
-        }).fail(function(xhr, status, error) {
-            console.error("Error loading transactions:", error);
-            $('#transaksi-container').html('<p>Terjadi error pada Transaksi, silakan hubungi teknikal support untuk perbaikan data.</p>');
-        });
-    }
 
     $('#bulants, #tahunts').change(function() {
         var bulan = $('#bulants').val();

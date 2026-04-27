@@ -510,49 +510,70 @@ public function cetakPadaBuku($idt)
             // Hapus semua real_simpanan untuk CIF ini
             RealSimpanan::where('cif', $cif)->delete();
 
-            // Ambil semua transaksi simpanan, urutkan sama persis dengan generate_simpanan.php
+            // Ambil semua transaksi simpanan (kecuali yang sudah dihapus),
+            // urutkan sama persis dengan generate_simpanan.php
             $transaksis = Transaksi::where('id_simp', $cif)
+                ->whereNull('deleted_at')
                 ->orderBy('tgl_transaksi', 'asc')
                 ->orderBy('urutan', 'asc')
                 ->orderBy('idt', 'asc')
                 ->get();
 
-            $sum = 0;
+            $sum  = 0;
+            $str  = 1; // flag untuk membedakan setor awal (kode=1) vs setor biasa (kode=2)
+
             foreach ($transaksis as $trx) {
                 $real_d = 0;
                 $real_k = 0;
                 $kode   = 0;
 
-                if (
-                    str_starts_with($trx->rekening_kredit, '2.1.04.') ||
-                    str_starts_with($trx->rekening_kredit, '3.1.01.')
-                ) {
+                $rdeb = $trx->rekening_debit;
+                $rkre = $trx->rekening_kredit;
+
+                $rkre_prefix = substr($rkre, 0, 6);
+                $rdeb_prefix = substr($rdeb, 0, 6);
+
+                $is_rek_simp_kredit = in_array($rkre_prefix, ['2.1.05', '2.2.05']);
+                $is_rek_simp_debit  = in_array($rdeb_prefix, ['2.1.05', '2.2.05']);
+                $is_kas_debit       = $rdeb_prefix === '1.1.01';
+                $is_kas_kredit      = $rkre_prefix === '1.1.01';
+                $is_bunga_debit     = $rdeb_prefix === '5.2.01';
+                $is_pajak_kredit    = $rkre_prefix === '2.1.03';
+                $is_admin_kredit    = $rkre_prefix === '4.1.03';
+
+                if ($is_kas_debit && $is_rek_simp_kredit && $str == 1) {
+                    // Setor awal
+                    $kode   = 1;
                     $real_k = $trx->jumlah;
                     $sum   += $trx->jumlah;
-
-                    if ($trx->rekening_debit === '1.1.01.01') {
-                        $kode = ($sum != 0) ? 2 : 1;
-                    }
-                    if (str_starts_with($trx->rekening_debit, '5.3.04.')) {
-                        $kode = 4;
-                    }
-                } elseif (
-                    str_starts_with($trx->rekening_debit, '2.1.04.') ||
-                    str_starts_with($trx->rekening_debit, '3.1.01.')
-                ) {
+                    $str    = 2;
+                } elseif ($is_kas_debit && $is_rek_simp_kredit) {
+                    // Setor tunai
+                    $kode   = 2;
+                    $real_k = $trx->jumlah;
+                    $sum   += $trx->jumlah;
+                } elseif ($is_rek_simp_debit && $is_kas_kredit) {
+                    // Tarik tunai
+                    $kode   = 3;
                     $real_d = $trx->jumlah;
                     $sum   -= $trx->jumlah;
-
-                    if ($trx->rekening_kredit === '1.1.01.01') {
-                        $kode = 3;
-                    }
-                    if (str_starts_with($trx->rekening_kredit, '4.1.03.')) {
-                        $kode = 5;
-                    }
-                    if ($trx->rekening_kredit === '2.1.03.01') {
-                        $kode = 10;
-                    }
+                } elseif ($is_bunga_debit && $is_rek_simp_kredit) {
+                    // Bunga
+                    $kode   = 5;
+                    $real_k = $trx->jumlah;
+                    $sum   += $trx->jumlah;
+                } elseif ($is_rek_simp_debit && $is_pajak_kredit) {
+                    // Pajak
+                    $kode   = 6;
+                    $real_d = $trx->jumlah;
+                    $sum   -= $trx->jumlah;
+                } elseif ($is_rek_simp_debit && $is_admin_kredit) {
+                    // Admin
+                    $kode   = 7;
+                    $real_d = $trx->jumlah;
+                    $sum   -= $trx->jumlah;
                 }
+                // kode=0 → transaksi tidak dikenali, real_d/real_k/sum tidak berubah
 
                 RealSimpanan::create([
                     'cif'            => $cif,
