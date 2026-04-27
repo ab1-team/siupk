@@ -227,12 +227,15 @@
                 });
             </script>
             <?php
-            $q2 = mysqli_query($koneksi,"SELECT * FROM simpanan_anggota_$kd_kab WHERE ($where) ORDER BY id ASC  LIMIT $start, $per_page");
+            $q2 = mysqli_query($koneksi,"SELECT * FROM simpanan_anggota_$kd_kab WHERE ($where) ORDER BY id ASC LIMIT $start, $per_page");
             while ($simp = mysqli_fetch_array($q2)) {
                 $del_re = mysqli_query($koneksi,"DELETE FROM real_simpanan_$lokasi WHERE cif=$simp[id]");
-                $query  = mysqli_query($koneksi,"SELECT * FROM transaksi_$lokasi WHERE id_simp LIKE '$simp[id]' ORDER BY tgl_transaksi ASC, urutan ASC, idt ASC");
+
+                // Tambahan: hanya ambil transaksi yang belum dihapus (deleted_at IS NULL)
+                $query = mysqli_query($koneksi,"SELECT * FROM transaksi_$lokasi WHERE id_simp LIKE '$simp[id]' AND deleted_at IS NULL ORDER BY tgl_transaksi ASC, urutan ASC, idt ASC");
+
                 $sum = 0;
-                        $str=1;
+                $str = 1;
                 while ($trx = mysqli_fetch_array($query)) {
                     $cif            = $simp['id'];
                     $idt            = $trx['idt'];
@@ -242,7 +245,6 @@
                     $rdeb           = $trx['rekening_debit'];
                     $rkre           = $trx['rekening_kredit'];
 
-    
                     if(substr($rdeb, 0, 6) == '1.1.01' AND (substr($rkre, 0, 6) == '2.1.05' or substr($rkre, 0, 6) == '2.2.05' ) AND $str==1){  //setor awal
                         $kode = 1;
                         $str=2;
@@ -250,7 +252,7 @@
                         $kode = 2;
                     }elseif ((substr($rdeb, 0, 6) == '2.1.05' or substr($rdeb, 0, 6) == '2.2.05' ) AND substr($rkre, 0, 6) == '1.1.01') {    //tarik
                         $kode = 3;
-                    }elseif ((substr($rdeb, 0, 6) == '5.2.01' or substr($rdeb, 0, 6) == '5.3.04') AND (substr($rkre, 0, 6) == '2.1.05' or substr($rkre, 0, 6) == '2.2.05' )) {    //bunga
+                    }elseif (substr($rdeb, 0, 6) == '5.2.01' AND (substr($rkre, 0, 6) == '2.1.05' or substr($rkre, 0, 6) == '2.2.05' )) {    //bunga
                         $kode = 5;
                     }elseif ((substr($rdeb, 0, 6) == '2.1.05' or substr($rdeb, 0, 6) == '2.2.05' ) AND substr($rkre, 0, 6) == '2.1.03') {    //pajak
                         $kode = 6;
@@ -259,6 +261,7 @@
                     }else{
                         $kode = 0;
                     }
+
                     if (in_array($kode, ['1', '2', '5'])) {
                         $real_d = 0;
                         $real_k = $jumlah;
@@ -268,14 +271,12 @@
                         $real_k = 0;
                         $sum -= $jumlah;
                     } else {
-                        $real_d         = 0;
-                        $real_k         = 0;
+                        $real_d = 0;
+                        $real_k = 0;
                     }
-                    
 
-                    
-                    $lu             = date('Y-m-d H:i:s');
-                    $id_user        = $trx['id_user'];
+                    $lu      = date('Y-m-d H:i:s');
+                    $id_user = $trx['id_user'];
                     
                     $insert_t = mysqli_query($koneksi,"INSERT INTO `real_simpanan_$lokasi`(`cif`, `idt`,`kode`,`tgl_transaksi`, `real_d`, `real_k`, `sum`, `lu`, `id_user`) 
                                  VALUES ('$cif','$idt','$kode','$tgl_transaksi','$real_d','$real_k','$sum','$lu','$id_user')");
