@@ -37,7 +37,7 @@ class GenerateSubdomains extends Command
         $skipped = 0;
         $failed = 0;
 
-        $rootDomain = env('CPANEL_DOMAIN', 'siupk.net');
+        $rootDomain = config('cpanel.domain', 'siupk.net');
 
         foreach ($kecamatans as $kec) {
             $webKec = $kec->web_kec;
@@ -87,12 +87,12 @@ class GenerateSubdomains extends Command
      */
     private function createSubdomain($subdomain, $recreate = false)
     {
-        $rootDomain = env('CPANEL_DOMAIN', 'siupk.net');
-        $user = env('CPANEL_USER');
-        $pass = env('CPANEL_PASS');
-        $host = env('CPANEL_URL');
+        $rootDomain = config('cpanel.domain', 'siupk.net');
+        $user = config('cpanel.user');
+        $pass = config('cpanel.pass');
+        $host = config('cpanel.url');
         $host = str_replace(['https://', 'http://'], '', $host);
-        $dir = env('CPANEL_DIR', '/public_html');
+        $dir = config('cpanel.dir', '/public_html');
 
         if (!$user || !$pass || !$host) {
             $this->error("  [ERROR] cPanel credentials not configured in .env");
@@ -147,10 +147,10 @@ class GenerateSubdomains extends Command
      */
     private function deleteSubdomain($subdomain)
     {
-        $rootDomain = env('CPANEL_DOMAIN', 'siupk.net');
-        $user = env('CPANEL_USER');
-        $pass = env('CPANEL_PASS');
-        $host = env('CPANEL_URL');
+        $rootDomain = config('cpanel.domain', 'siupk.net');
+        $user = config('cpanel.user');
+        $pass = config('cpanel.pass');
+        $host = config('cpanel.url');
         $host = str_replace(['https://', 'http://'], '', $host);
 
         $params = [
