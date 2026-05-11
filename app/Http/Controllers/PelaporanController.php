@@ -3392,7 +3392,8 @@ private function pemanfaat_aktif(array $data)
                         ]);
                     })
                     ->orderBy($tb_kel . '.desa', 'ASC')
-                    ->orderBy($tb_pinkel . '.tgl_cair', 'ASC');
+                    ->orderBy($tb_pinkel . '.tgl_cair', 'ASC')
+                    ->orderBy('desa.kd_desa');
             },
             'pinjaman_kelompok.real' => function ($query) use ($tgl_awal, $tgl_akhir) {
                 $query->whereBetween('tgl_transaksi', [$tgl_awal, $tgl_akhir]);
@@ -3473,7 +3474,8 @@ private function pemanfaat_aktif(array $data)
                                     [$data['tb_pinj_i'] . '.jenis_pinjaman', 'I']
                                 ]);
                             });
-                    });
+                    })
+                    ->orderBy('desa.kd_desa');
             },
             'pinjaman_kelompok.sis_pokok'
         ])->get();

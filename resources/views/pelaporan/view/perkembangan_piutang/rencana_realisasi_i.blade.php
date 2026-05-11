@@ -74,8 +74,9 @@
                     $desa = $pinj_i->kd_desa;
                 @endphp
 
-                @if (array_count_values($kd_desa)[$pinj_i->kd_desa] <= '1')
-                    @if ($section != $desa && count($kd_desa) > 1)
+                {{-- Ganti kondisi lama dengan ini --}}
+                @if ($section != $pinj_i->kd_desa)
+                    @if ($section != 0)
                         @php
                             $t_kelompok += $j_kelompok;
                             $t_pemanfaat += $j_pemanfaat;
@@ -103,7 +104,6 @@
 
                     @php
                         $nomor = 1;
-
                         $section = $pinj_i->kd_desa;
                         $nama_desa = $pinj_i->sebutan_desa . ' ' . $pinj_i->nama_desa;
                         $j_kelompok = 0;
@@ -115,7 +115,7 @@
 
                 <tr>
                     <td class="t l b" align="center">{{ $nomor++ }}</td>
-                    <td class="t l b">{{ $pinj_i->namadepan }} - {{ $pinj_i->id }}</td>
+                    <td class="t l b"> {{ $pinj_i->namadepan }} - {{ $pinj_i->id }}</td>
                     <td class="t l b">{{ $pinj_i->spk_no }}</td>
                     <td class="t l b" align="center">{{ Tanggal::tglIndo($pinj_i->tgl_cair) }}</td>
                     <td class="t l b" align="center">{{ $pinj_i->jangka }}/{{ $pinj_i->sis_pokok->sistem }}</td>
