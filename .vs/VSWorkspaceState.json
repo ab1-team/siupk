@@ -2,12 +2,9 @@
   "ExpandedNodes": [
     "",
     "\\app",
-    "\\app\\Http",
-    "\\app\\Http\\Controllers",
-    "\\resources",
-    "\\resources\\views",
-    "\\resources\\views\\dashboard",
-    "\\resources\\views\\perguliran"
+    "\\public",
+    "\\resources\\views\\simpanan\\partials"
   ],
+  "SelectedNode": "\\public\\generate_simpanan.php",
   "PreviewInSolutionExplorer": false
 }

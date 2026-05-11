@@ -1007,21 +1007,38 @@ class PinjamanIndividuController extends Controller
     public function carianggota()
     {
         $param = request()->get('query');
-        if (strlen($param) >= '0') {
-            $anggota = anggota::join('desa', 'desa.kd_desa', '=', 'anggota_' . Session::get('lokasi') . '.desa')
-                ->join('pinjaman_anggota_' . Session::get('lokasi') . ' as pk', 'pk.id_angg', '=', 'anggota_' . Session::get('lokasi') . '.id')
-                ->where(function ($query) use ($param) {
-                    $query->where('anggota_' . Session::get('lokasi') . '.namadepan', 'like', '%' . $param . '%')
-                        ->orwhere('anggota_' . Session::get('lokasi') . '.kd_anggota', 'like', '%' . $param . '%')
-                        ->orwhere('anggota_' . Session::get('lokasi') . '.ketua', 'like', '%' . $param . '%');
-                })
-                ->where('pk.status', 'A')
-                ->get();
+        if (strlen($param) >= 3) {
+            $lokasi = Session::get('lokasi');
+            $tabelAnggota = 'anggota_' . $lokasi;
+            $tabelPinjaman = 'pinjaman_anggota_' . $lokasi;
+            $tabelDesa = 'desa';
+
+            // Try cache first
+            $cacheKey = 'search_anggota_' . $lokasi . '_' . md5($param);
+            $anggota = \Cache::remember($cacheKey, 3600, function() use ($tabelAnggota, $tabelPinjaman, $tabelDesa, $param) {
+                return \DB::table($tabelAnggota)
+                    ->join($tabelDesa, $tabelDesa . '.kd_desa', '=', $tabelAnggota . '.desa')
+                    ->join($tabelPinjaman, $tabelPinjaman . '.id_angg', '=', $tabelAnggota . '.id')
+                    ->select(
+                        $tabelAnggota . '.id',
+                        $tabelAnggota . '.namadepan',
+                        $tabelAnggota . '.nik',
+                        $tabelDesa . '.nama_desa'
+                    )
+                    ->where(function ($query) use ($param, $tabelAnggota) {
+                        $query->where($tabelAnggota . '.namadepan', 'like', $param . '%')
+                            ->orwhere($tabelAnggota . '.kd_anggota', 'like', $param . '%')
+                            ->orwhere($tabelAnggota . '.nik', 'like', $param . '%');
+                    })
+                    ->where($tabelPinjaman . '.status', 'A')
+                    ->limit(20)
+                    ->get();
+            });
 
             return response()->json($anggota);
         }
 
-        return response()->json($param);
+        return response()->json([]);
     }
 
     public function dokumen(Request $request)

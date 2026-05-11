@@ -18,6 +18,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
 use Session;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class PinjamanAnggotaController extends Controller
 {
@@ -412,39 +414,90 @@ class PinjamanAnggotaController extends Controller
     }
 
     public function updateCatatanVerifikasi(Request $request, $id)
-{
-    $pinjamanAnggota = PinjamanAnggota::find($id);
-    if ($pinjamanAnggota) {
-        $pinjamanAnggota->catatan_verifikasi = $request->input('catatan_verifikasi');
-        $pinjamanAnggota->save();
+    {
+        $pinjamanAnggota = PinjamanAnggota::find($id);
+        if ($pinjamanAnggota) {
+            $pinjamanAnggota->catatan_verifikasi = $request->input('catatan_verifikasi');
+            $pinjamanAnggota->save();
 
-        return response()->json(['success' => true]);
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false], 404);
     }
-
-    return response()->json(['success' => false], 404);
-}
 
     public function cariAnggota()
     {
-        $param = request()->get('query');
-        if (strlen($param) >= '0') {
-            $anggota = Anggota::join('desa', 'desa.kd_desa', '=', 'anggota_' . Session::get('lokasi') . '.desa')
-                ->join('pinjaman_anggota_' . Session::get('lokasi') . ' as pk', 'pk.nia', '=', 'anggota_' . Session::get('lokasi') . '.id')
-                ->where(function ($query) use ($param) {
-                    $query->where('anggota_' . Session::get('lokasi') . '.namadepan', 'like', '%' . $param . '%')
-                        ->orwhere('anggota_' . Session::get('lokasi') . '.nik', 'like', '%' . $param . '%');
-                })
-                ->where([
-                    ['pk.status', 'A'],
-                    ['pk.jenis_pinjaman', '!=', 'K']
-                ])
-                ->get();
+        $param = trim(request()->get('query', ''));
 
-            return response()->json($anggota);
+        if (strlen($param) < 2) {
+            return response()->json([]);
         }
 
-        return response()->json($param);
+        $lokasi        = Session::get('lokasi');
+        $tabelAnggota  = 'anggota_' . $lokasi;
+        $tabelPinjaman = 'pinjaman_anggota_' . $lokasi;
+
+        // Cache pengecekan index, hanya cek DB sekali per lokasi
+        $cacheKey = 'index_created_' . $lokasi;
+        if (!Cache::has($cacheKey)) {
+            $this->ensureIndex($tabelAnggota, $tabelPinjaman);
+            Cache::forever($cacheKey, true); // Setelah index ada, tidak cek lagi
+        }
+
+        $anggota = Anggota::join('desa', 'desa.kd_desa', '=', "$tabelAnggota.desa")
+            ->join($tabelPinjaman . ' as pk', 'pk.nia', '=', "$tabelAnggota.id")
+            ->where(function ($query) use ($param, $tabelAnggota) {
+                $query->where("$tabelAnggota.namadepan", 'like', $param . '%')
+                      ->orWhere("$tabelAnggota.nik", 'like', $param . '%');
+            })
+            ->where('pk.status', 'A')
+            ->where('pk.jenis_pinjaman', '!=', 'K')
+            ->limit(50)
+            ->get();
+
+
+        return response()->json($anggota);
     }
+
+    private function ensureIndex(string $tabelAnggota, string $tabelPinjaman): void
+    {
+        $indexAnggota = DB::select("
+            SELECT INDEX_NAME FROM information_schema.STATISTICS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = ? 
+            AND INDEX_NAME = 'idx_nama_nik'
+        ", [$tabelAnggota]);
+
+        if (empty($indexAnggota)) {
+            DB::statement("ALTER TABLE `$tabelAnggota` ADD INDEX idx_nama_nik (namadepan, nik)");
+            DB::statement("ALTER TABLE `$tabelAnggota` ADD INDEX idx_desa (desa)");
+        }
+
+        $indexPinjaman = DB::select("
+            SELECT INDEX_NAME FROM information_schema.STATISTICS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = ? 
+            AND INDEX_NAME = 'idx_nia_status_jenis'
+        ", [$tabelPinjaman]);
+
+        if (empty($indexPinjaman)) {
+            DB::statement("ALTER TABLE `$tabelPinjaman` ADD INDEX idx_nia_status_jenis (nia, status, jenis_pinjaman)");
+        }
+
+        // Tambahan: index tabel desa (hanya sekali, cek dulu)
+        $indexDesa = DB::select("
+            SELECT INDEX_NAME FROM information_schema.STATISTICS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'desa'
+            AND INDEX_NAME = 'idx_kd_desa'
+        ");
+
+        if (empty($indexDesa)) {
+            DB::statement("ALTER TABLE `desa` ADD INDEX idx_kd_desa (kd_desa)");
+        }
+    }
+
     public function lunaskan(Request $request, PinjamanAnggota $pinjaman)
     {
         $data = $request->only(['id_pinkel']);
