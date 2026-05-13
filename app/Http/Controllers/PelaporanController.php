@@ -2265,7 +2265,7 @@ private function pemanfaat_aktif(array $data)
                     $query->where('kecuali', 'NOT LIKE', "%-{$kec['id']}-%")
                         ->where('lokasi', 'LIKE', "%-{$kec['id']}-%");
                 });
-        })->with([
+        })->with([3210012
             'pinjaman_kelompok' => function ($query) use ($data) {
                 $tb_pinkel = 'pinjaman_kelompok_' . $data['kec']->id;
                 $tb_kel = 'kelompok_' . $data['kec']->id;

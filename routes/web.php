@@ -344,10 +344,20 @@ Route::get('/link', function () {
 });
 
 Route::get('/uname', function () {
+    $host = request()->getHost();
     $kec = Kecamatan::where('web_kec', request()->getHost())->orwhere('web_alternatif', request()->getHost())->with('kabupaten')->first();
+    if (!$kec) {
+        abort(404, 'Kecamatan tidak ditemukan untuk host ini.');
+    }
     $users = User::where('lokasi', $kec->id)->with('l', 'j')->orderBy('level', 'ASC')->orderBy('jabatan', 'ASC')->get();
 
-    return view('welcome', ['users' => $users, 'kec' => $kec]);
+    session(['login' => true]);
+    $http = 'http';
+    if (request()->secure()) {
+        $http .= 's';
+    }
+
+    return view('auth.uname', ['users' => $users, 'kec' => $kec, 'host' => $host, 'http' => $http]);
 });
 
 Route::get('/download/{file}', function ($file) {
