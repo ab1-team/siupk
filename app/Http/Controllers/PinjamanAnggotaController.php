@@ -448,9 +448,9 @@ class PinjamanAnggotaController extends Controller
         $anggota = Anggota::join('desa', 'desa.kd_desa', '=', "$tabelAnggota.desa")
             ->join($tabelPinjaman . ' as pk', 'pk.nia', '=', "$tabelAnggota.id")
             ->where(function ($query) use ($param, $tabelAnggota) {
-                $query->where("$tabelAnggota.namadepan", 'like', $param . '%')
-                      ->orWhere("$tabelAnggota.nik", 'like', $param . '%');
-            })
+                $query->where("$tabelAnggota.namadepan", 'like', '%' . $param . '%')
+                      ->orWhere("$tabelAnggota.nik", 'like', '%' . $param . '%');
+                })
             ->where('pk.status', 'A')
             ->where('pk.jenis_pinjaman', '!=', 'K')
             ->limit(50)

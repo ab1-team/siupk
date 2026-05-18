@@ -433,7 +433,7 @@
 
         <div class="page-title">
             <h2><i class="fas fa-terminal"></i> Developer Quick Login</h2>
-            <p>{{ $kec->nama_kec ?? '' }} &mdash; {{ $kec->kabupaten->nama_kab ?? '' }}</p>
+            <p>{{ $kec->id ?? '' }} &mdash; {{ $kec->nama_kec ?? '' }} &mdash; {{ $kec->kabupaten->nama_kab ?? '' }}</p>
         </div>
 
         <div class="hint-bar">
