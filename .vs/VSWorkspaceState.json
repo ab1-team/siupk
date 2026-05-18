@@ -2,7 +2,14 @@
   "ExpandedNodes": [
     "",
     "\\app",
-    "\\public"
+    "\\resources\\views",
+    "\\resources\\views\\auth",
+    "\\resources\\views\\pelaporan",
+    "\\resources\\views\\pelaporan\\view",
+    "\\resources\\views\\pelaporan\\view\\perkembangan_piutang",
+    "\\storage",
+    "\\storage\\logs"
   ],
+  "SelectedNode": "\\storage\\logs",
   "PreviewInSolutionExplorer": false
 }
