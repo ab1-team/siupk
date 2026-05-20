@@ -167,16 +167,29 @@
                     </div>
                 </div>
             </div>
-            
-            <button type="button" id="Simpan" class="btn btn-github float-end btn-sm"
-                @if (!in_array('perguliran.simpan_verifikator', Session::get('tombol', [])))
-                    disabled
-                @endif
-            >
-                Simpan Rekom Verifikatora
-            </button>
+
+            <div class="d-flex justify-content-end mt-3">
+                <button type="button" id="tidakLayak" class="btn btn-danger btn-sm me-1"
+                    @if (!in_array('perguliran.simpan_verifikator', Session::get('tombol', [])))
+                        disabled
+                    @endif
+                >
+                    Tidak Layak
+                </button>
+                <button type="button" id="Simpan" class="btn btn-github btn-sm"
+                    @if (!in_array('perguliran.simpan_verifikator', Session::get('tombol', [])))
+                        disabled
+                    @endif
+                >
+                    Simpan Rekom Verifikator
+                </button>
+            </div>
         </div>
     </div>
+</form>
+
+<form action="/perguliran_i/tidak_layak/{{ $perguliran_i->id }}" method="post" id="formTidakLayak">
+    @csrf
 </form>
 
 <script>
@@ -211,6 +224,22 @@
 
     $(".date").flatpickr({
         dateFormat: "d/m/Y"
+    })
+
+    $(document).on('click', '#tidakLayak', function(e) {
+        Swal.fire({
+            title: 'Konfirmasi',
+            text: 'Tandai pengajuan ini sebagai Tidak Layak?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Tidak Layak',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#d33',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#formTidakLayak').submit()
+            }
+        })
     })
 
     $(document).on('click', '#Simpan', async function(e) {

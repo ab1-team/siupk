@@ -269,7 +269,7 @@
             </div>
             <div class="row">
                 <div class="col-md-6">
-                <?php
+                <?php 
                     $tanggalHariIni = date('d-m-Y'); // Format: 29-10-2024
                     ?>
                     <div class="input-group input-group-static my-3">
@@ -298,6 +298,15 @@
                 >
                     Kembalikan Ke Proposal
                 </button>
+
+                <button type="button" id="tidakLayak" class="btn btn-danger ms-1 btn-sm"
+                    @if (!in_array('perguliran.simpan_dana', Session::get('tombol', [])))
+                        disabled
+                    @endif
+                >
+                    Tidak Layak
+                </button>
+
                 <button type="button" id="Simpan" class="btn btn-github ms-1 btn-sm"
                     @if (!in_array('perguliran.simpan_dana', Session::get('tombol', [])))
                         disabled
@@ -311,6 +320,10 @@
 </form>
 
 <form action="/perguliran/kembali_proposal/{{ $perguliran->id }}" method="post" id="formKembaliProposal">
+    @csrf
+</form>
+
+<form action="/perguliran/tidak_layak/{{ $perguliran->id }}" method="post" id="formTidakLayak">
     @csrf
 </form>
 
@@ -406,6 +419,22 @@
         $('#__alokasi').val(total)
         $('#_alokasi').html(formatter.format(total))
         $('#alokasi').val(formatter.format(total))
+    })
+
+    $(document).on('click', '#tidakLayak', function(e) {
+        Swal.fire({
+            title: 'Konfirmasi',
+            text: 'Tandai pengajuan ini sebagai Tidak Layak?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Tidak Layak',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#d33',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#formTidakLayak').submit()
+            }
+        })
     })
 
     $(document).on('click', '#Simpan', async function(e) {

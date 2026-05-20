@@ -834,6 +834,30 @@ class PinjamanKelompokController extends Controller
         ]);
     }
 
+    public function tidakLayak(Request $request, PinjamanKelompok $id)
+    {
+        $pinkel = PinjamanKelompok::where('id', $id->id)->update([
+            'status' => 'T'
+        ]);
+
+        $pinjaman = PinjamanAnggota::where('id_pinkel', $id->id)->update([
+            'status' => 'T'
+        ]);
+
+        $pemanfaat = DataPemanfaat::where([
+            ['id_pinkel', $id->id],
+            ['lokasi', Session::get('lokasi')]
+        ])->update([
+            'status' => 'T'
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'msg' => 'Pinjaman Kelompok ' . $id->kelompok->nama_kelompok . ' Loan ID. ' . $id->id . ' berhasil mengubah status T (Tidak Layak)',
+            'id_pinkel' => $id->id
+        ]);
+    }
+
     public function rescedule(Request $request)
     {
         $id = $request->id;

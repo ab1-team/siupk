@@ -225,6 +225,13 @@
                 >
                     Kembalikan Ke Proposal
                 </button>
+                <button type="button" id="tidakLayak" class="btn btn-danger ms-1 btn-sm"
+                    @if (!in_array('perguliran.cairkan', Session::get('tombol', [])))
+                        disabled
+                    @endif
+                >
+                    Tidak Layak
+                </button>
                 <button type="button" id="Simpan" class="btn btn-github ms-1 btn-sm"
                     @if (!in_array('perguliran.cairkan', Session::get('tombol', [])) || $pinj_aktif)
                         disabled
@@ -232,13 +239,16 @@
                 >
                     Cairkan Sekarang
                 </button>
-                
             </div>
         </div>
     </div>
 </form>
 
 <form action="/perguliran_i/kembali_proposal/{{ $perguliran_i->id }}" method="post" id="formKembaliProposal">
+    @csrf
+</form>
+
+<form action="/perguliran_i/tidak_layak/{{ $perguliran_i->id }}" method="post" id="formTidakLayak">
     @csrf
 </form>
 
@@ -262,12 +272,29 @@
         dateFormat: "d/m/Y"
     })
 
+    $(document).on('click', '#kembaliProposal', function(e) {
+        $('#formKembaliProposal').submit()
+    })
+
+    $(document).on('click', '#tidakLayak', function(e) {
+        Swal.fire({
+            title: 'Konfirmasi',
+            text: 'Tandai pengajuan ini sebagai Tidak Layak?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Tidak Layak',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#d33',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#formTidakLayak').submit()
+            }
+        })
+    })
+
     $(document).on('click', '#Simpan', async function(e) {
         e.preventDefault()
         $('small').html('')
-
-        var alokasi = parseInt($('#alokasi').val().split(',').join('').split('.00').join(''))
-        var __alokasi = parseInt($('#__alokasi').val())
 
         var lanjut = true;
         lanjut = await Swal.fire({

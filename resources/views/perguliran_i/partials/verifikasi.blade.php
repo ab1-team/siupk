@@ -106,10 +106,10 @@
         <div class="d-grid">
             <button type="submit" name="report" value="RekomendasiVerifikator#pdf" class="btn btn-info btn-sm mb-2">Cetak Rekomendasi Verifikator/Analis</button>
         </div>
- <div class="d-grid">
-    <button type="button" data-bs-toggle="modal" data-bs-target="#CetakDokumenProposal"
-     class="btn btn-success btn-sm mb-2" style="background-color: green;">Cetak Dokumen Proposal</button>
-</div>
+        <div class="d-grid">
+            <button type="button" data-bs-toggle="modal" data-bs-target="#CetakDokumenProposal"
+                class="btn btn-success btn-sm mb-2" style="background-color: green;">Cetak Dokumen Proposal</button>
+        </div>
 
     </form>
 </div>
@@ -233,6 +233,13 @@
                 >
                     Kembalikan Ke Proposal
                 </button>
+                <button type="button" id="tidakLayak" class="btn btn-danger ms-1 btn-sm"
+                    @if (!in_array('perguliran.simpan_dana', Session::get('tombol', [])))
+                        disabled
+                    @endif
+                >
+                    Tidak Layak
+                </button>
                 <button type="button" id="Simpan" class="btn btn-github ms-1 btn-sm"
                     @if (!in_array('perguliran.simpan_dana', Session::get('tombol', [])))
                         disabled
@@ -246,6 +253,10 @@
 </form>
 
 <form action="/perguliran_i/kembali_proposal/{{ $perguliran_i->id }}" method="post" id="formKembaliProposal">
+    @csrf
+</form>
+
+<form action="/perguliran_i/tidak_layak/{{ $perguliran_i->id }}" method="post" id="formTidakLayak">
     @csrf
 </form>
 
@@ -281,6 +292,26 @@
 
     $(".date").flatpickr({
         dateFormat: "d/m/Y"
+    })
+
+    $(document).on('click', '#kembaliProposal', function(e) {
+        $('#formKembaliProposal').submit()
+    })
+
+    $(document).on('click', '#tidakLayak', function(e) {
+        Swal.fire({
+            title: 'Konfirmasi',
+            text: 'Tandai pengajuan ini sebagai Tidak Layak?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Tidak Layak',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#d33',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#formTidakLayak').submit()
+            }
+        })
     })
 
     $(document).on('click', '#Simpan', async function(e) {
