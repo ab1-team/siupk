@@ -110,7 +110,7 @@ class AuthController extends Controller
         if ($user) {
             if ($password === $user->pass) {
                 if (Auth::loginUsingId($user->id)) {
-                    $hak_akses = explode(',', $user->akses_menu);
+                    $hak_akses = array_map('trim', explode(',', $user->hak_akses));
                     $menu = Menu::where('parent_id', '0')
                         ->whereNotIn('id', $hak_akses)
                         ->where('aktif', 'Y')
@@ -135,11 +135,11 @@ class AuthController extends Controller
                         ->orderBy('id', 'ASC')
                         ->get();
 
-                    $AksesMenu = explode(',', $user->akses_menu);
+                    $AksesMenu = array_map('trim', explode(',', $user->akses_menu));
                     $Menu = Menu::whereNotIn('id', $AksesMenu)->pluck('title')->toArray();
 
 
-                    $AksesTombol = explode(',', $user->akses_tombol);
+                    $AksesTombol = array_map('trim', explode(',', $user->akses_tombol));
                     $MenuTombol = MenuTombol::whereNotIn('id', $AksesTombol)->pluck('akses')->toArray();
 
                     $inv = $this->generateInvoice($kec);
@@ -223,7 +223,7 @@ class AuthController extends Controller
         if ($user) {
             if ($password === $user->pass) {
                 if (Auth::loginUsingId($user->id)) {
-                    $hak_akses = explode(',', $user->hak_akses);
+                    $hak_akses = array_map('trim', explode(',', $user->hak_akses));
                     $menu = Menu::where('parent_id', '0')
                         ->whereNotIn('id', $hak_akses)
                         ->where('aktif', 'Y')
