@@ -19,6 +19,7 @@ use App\Models\Kelompok;
 use App\Models\MasterArusKas;
 use App\Models\PinjamanAnggota;
 use App\Models\PinjamanIndividu;
+use App\Models\CatatanBp;
 use App\Models\PinjamanKelompok;
 use App\Models\Rekening;
 use App\Models\RekeningOjk;
@@ -4815,6 +4816,58 @@ private function kolek_individu_mingguan(array $data)
         return $view;
     }
 }
+
+private function catatan_pengawas(array $data)
+{
+    $thn  = $data['tahun'];
+    $bln  = $data['bulan'];
+    $hari = $data['hari'];
+
+    $tgl = $thn . '-' . $bln . '-' . $hari;
+    $data['judul'] = 'Catatan Pengawas';
+    $data['sub_judul'] = 'Tahun ' . Tanggal::tahun($tgl);
+    if ($data['bulanan']) {
+        $data['judul'] = 'Catatan Pengawas';
+        $data['sub_judul'] = 'Bulan ' . Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+    }
+    
+    $data['tgl'] = Tanggal::tahun($tgl);
+
+    $lokasi = Session::get('lokasi');
+
+    $query = CatatanBp::with('sender')
+                ->where('lokasi', $lokasi)
+                ->orderBy('bulan_laporan', 'ASC')
+                ->orderBy('tanggal', 'ASC');
+
+    // Filter tahun selalu ada
+    $query->where('bulan_laporan', 'like', $thn . '-%');
+
+    // Filter bulan hanya kalau laporan bulanan
+    if ($data['bulanan']) {
+        $bulanPad = str_pad($bln, 2, '0', STR_PAD_LEFT);
+        $query->where('bulan_laporan', 'like', '%-' . $bulanPad);
+    }
+
+    $data['catatan'] = $query->get();
+    
+        $ttd_users = User::with('j')
+            ->where('level', 3)
+            ->where('lokasi', $lokasi)
+            ->where('status', '1')
+            ->orderBy('jabatan', 'ASC')
+            ->get();
+            $data['ttd_users'] = $ttd_users;
+    $view = view('pelaporan.view.catatan_pengawas', $data)->render();
+
+    if ($data['type'] == 'pdf') {
+        $pdf = PDF::loadHTML($view);
+        return $pdf->stream('catatan_pengawas_' . $data['sub_judul'] . '.pdf');
+    } else {
+        return $view;
+    }
+}
+
 private function kolek_per_kelompok_mingguan(array $data)
 {
     $thn = $data['tahun'];

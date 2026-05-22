@@ -43,8 +43,11 @@
                 </a>
             </li>
             <hr class="horizontal light mt-0">
-
-            @include('layouts.menu', ['parent_menu' => Session::get('menu')])
+            @if(auth()->user()->level == 3)
+                @include('layouts.menu_pengawas')
+            @else
+                @include('layouts.menu', ['parent_menu' => Session::get('menu')])
+            @endif
         </ul>
     </div>
 </aside>

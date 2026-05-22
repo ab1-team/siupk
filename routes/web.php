@@ -12,6 +12,7 @@ use App\Http\Controllers\AnggotaController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DesaController;
+use App\Http\Controllers\FormPengawasController;
 use App\Http\Controllers\GenerateController;
 use App\Http\Controllers\Kabupaten\AuthController as KabupatenAuthController;
 use App\Http\Controllers\Kabupaten\KabupatenController;
@@ -421,5 +422,14 @@ Route::post('/simpanan/generate-bunga2/{offset?}', [SimpananController::class, '
 Route::get('/bunga_simpanan', [SimpananController::class, 'bunga_simpanan'])->middleware('auth');
 Route::get('/bunga_simpanan/info', [SimpananController::class, 'infoBunga'])->middleware('auth');
 Route::get('/simpan_bunga', [SimpananController::class, 'simpanBunga'])->middleware('auth');
+
+Route::prefix('form_pengawas')->middleware(['auth'])->group(function () {
+    Route::get('/',             [FormPengawasController::class, 'index'])->name('form_pengawas.index');
+    Route::post('/store',       [FormPengawasController::class, 'store'])->name('form_pengawas.store');
+    Route::get('/{id}/edit',    [FormPengawasController::class, 'edit'])->name('form_pengawas.edit');
+    Route::put('/{id}',         [FormPengawasController::class, 'update'])->name('form_pengawas.update');
+    Route::delete('/{id}',      [FormPengawasController::class, 'destroy'])->name('form_pengawas.destroy');
+});
+
 
 Route::get('/{invoice}', [PelaporanController::class, 'invoice']);
