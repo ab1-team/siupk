@@ -1,17 +1,14 @@
 {
   "ExpandedNodes": [
     "",
-    "\\app",
     "\\app\\Http",
     "\\resources",
     "\\resources\\views",
-    "\\resources\\views\\perguliran",
-    "\\resources\\views\\perguliran\\partials",
-    "\\resources\\views\\perguliran_i",
-    "\\resources\\views\\perguliran_i\\partials",
-    "\\storage",
-    "\\storage\\logs"
+    "\\resources\\views\\layouts",
+    "\\resources\\views\\pelaporan",
+    "\\resources\\views\\pelaporan\\view",
+    "\\resources\\views\\pengawas"
   ],
-  "SelectedNode": "\\app\\Http\\Controllers\\PinjamanIndividuController.php",
+  "SelectedNode": "\\resources\\views\\layouts\\sidebar.blade.php",
   "PreviewInSolutionExplorer": false
 }

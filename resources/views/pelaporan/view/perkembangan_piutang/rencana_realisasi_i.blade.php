@@ -25,6 +25,7 @@
 
         @php
             $kd_desa = [];
+            $section = 0;
 
             $t_kelompok = 0;
             $t_pemanfaat = 0;
@@ -74,7 +75,6 @@
                     $desa = $pinj_i->kd_desa;
                 @endphp
 
-                {{-- Ganti kondisi lama dengan ini --}}
                 @if ($section != $pinj_i->kd_desa)
                     @if ($section != 0)
                         @php
@@ -140,7 +140,7 @@
                 @endphp
                 <tr style="font-weight: bold;">
                     <td class="t l b" colspan="5" align="center" height="15">
-                        Jumlah Kelompok {{ $nama_desa }} ({{ $j_kelompok }})
+                        Jumlah Peminjam {{ $nama_desa }} ({{ $j_kelompok }})
                     </td>
                     <td class="t l b" align="right">
                         {{ number_format($j_pengajuan, 2) }}
