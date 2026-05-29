@@ -317,6 +317,9 @@
                     $target_pokok = 0;
                     $target_jasa = 0;
                 @endphp
+
+                @php
+                /*
                 @foreach ($pinkel->real as $real)
                     @php
                         $jumlah++;
@@ -398,7 +401,9 @@
                         <td class="l {{ $b }} r" align="center">{{ $real->id }}</td>
                     </tr>
                 @endforeach
-
+                
+                */
+                @endphp
                 @if ($jumlah < 16)
                     @for ($i = 1; $i <= 16 - $jumlah; $i++)
                         <tr>
