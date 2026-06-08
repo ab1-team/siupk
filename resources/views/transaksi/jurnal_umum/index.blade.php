@@ -13,8 +13,9 @@
                                 <div class="input-group input-group-static my-3">
                                     <label for="tgl_transaksi">Tgl Transaksi</label>
                                     <input autocomplete="off" type="text" name="tgl_transaksi" id="tgl_transaksi"
-                                        class="form-control{{ session('lokasi') != 197 ? ' date' : '' }}"
-                                        value="{{ date('d/m/Y') }}" @if (session('lokasi') == 197) readonly @endif>
+                                        class="form-control date"
+                                        value="{{ date('d/m/Y') }}">
+                                    {{-- @if (session('lokasi') == 197) readonly @endif --}}
                                     <small class="text-danger" id="msg_tgl_transaksi"></small>
                                 </div>
                             </div>
