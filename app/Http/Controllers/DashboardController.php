@@ -872,6 +872,9 @@ class DashboardController extends Controller
 
     public function simpanSaldo()
     {
+        @set_time_limit(0);
+        @ini_set('memory_limit', '512M');
+
         $tahun = request()->get('tahun') ?: date('Y');
         $bulan = request()->get('bulan') ?: date('m');
 
@@ -1006,11 +1009,15 @@ class DashboardController extends Controller
 
             if ($jumlah <= '0') {
                 Saldo::whereIn('id', $data_id)->delete();
-                $query = Saldo::insert($saldo);
+                foreach (array_chunk($saldo, 500) as $chunk) {
+                    Saldo::insert($chunk);
+                }
             }
         } else {
             Saldo::whereIn('id', $data_id)->delete();
-            $query = Saldo::insert($saldo);
+            foreach (array_chunk($saldo, 500) as $chunk) {
+                Saldo::insert($chunk);
+            }
         }
 
         $link = request()->url('');

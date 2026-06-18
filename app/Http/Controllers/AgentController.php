@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
@@ -46,55 +47,55 @@ class AgentController extends Controller
         $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
         $desa = Desa::where('kd_kec', $kec['kd_kec'])->with('sebutan_desa')->get();
 
-        
+
         $desa_dipilih = 0;
         $agent_dipilih = 0;
 
         return view('agent.create')->with(compact('desa', 'desa_dipilih'));
     }
-    
-        public function generateKode()
-        {
-            $lokasi = Session::get('lokasi');
-            $kd_desa = request()->get('kode');
 
-            $jumlah_agent_by_kd_desa = Agent::where('desa', $kd_desa)->orderBy('kd_agent', 'DESC');
-            if ($jumlah_agent_by_kd_desa->count() > 0) {
-                $data_agent = $jumlah_agent_by_kd_desa->first();
-                $kode_agent = explode('-',$data_agent->kd_agent);
+    public function generateKode()
+    {
+        $lokasi = Session::get('lokasi');
+        $kd_desa = request()->get('kode');
 
-                if (count($kode_agent) >= 2) {
-                    $kd_agent = $kode_agent[0] . '-' . str_pad(($kode_agent[1] + 1), 3, "0", STR_PAD_LEFT);
-                } else {
-                    $jumlah_agent = str_pad(Agent::where('desa', $kd_desa)->count() + 1, 3, "0", STR_PAD_LEFT);
-                    $kd_agent = $kd_desa . '-' . $jumlah_agent;
-                }
+        $jumlah_agent_by_kd_desa = Agent::where('desa', $kd_desa)->orderBy('kd_agent', 'DESC');
+        if ($jumlah_agent_by_kd_desa->count() > 0) {
+            $data_agent = $jumlah_agent_by_kd_desa->first();
+            $kode_agent = explode('-', $data_agent->kd_agent);
 
-                // $kd_agent = $data_agent->kd_agent + 1;
-
+            if (count($kode_agent) >= 2) {
+                $kd_agent = $kode_agent[0] . '-' . str_pad(($kode_agent[1] + 1), 3, "0", STR_PAD_LEFT);
             } else {
                 $jumlah_agent = str_pad(Agent::where('desa', $kd_desa)->count() + 1, 3, "0", STR_PAD_LEFT);
                 $kd_agent = $kd_desa . '-' . $jumlah_agent;
-                // $kd_agent = $kd_desa . $jumlah_agent;
-
             }
 
-            if (request()->get('kd_agent')) {
-                $kd_kel = request()->get('kd_agent');
-                $agent = Agent::where('kd_agent', $kd_kel);
-                if ($agent->count() > 0) {
-                    $data_kel = $agent->first();
+            // $kd_agent = $data_agent->kd_agent + 1;
 
-                    if ($kd_desa == $data_kel->desa) {
-                        $kd_agent = $data_kel->kd_agent;
-                    }
+        } else {
+            $jumlah_agent = str_pad(Agent::where('desa', $kd_desa)->count() + 1, 3, "0", STR_PAD_LEFT);
+            $kd_agent = $kd_desa . '-' . $jumlah_agent;
+            // $kd_agent = $kd_desa . $jumlah_agent;
+
+        }
+
+        if (request()->get('kd_agent')) {
+            $kd_kel = request()->get('kd_agent');
+            $agent = Agent::where('kd_agent', $kd_kel);
+            if ($agent->count() > 0) {
+                $data_kel = $agent->first();
+
+                if ($kd_desa == $data_kel->desa) {
+                    $kd_agent = $data_kel->kd_agent;
                 }
             }
-
-            return response()->json([
-                'kd_agent' => $kd_agent
-            ], Response::HTTP_ACCEPTED);
         }
+
+        return response()->json([
+            'kd_agent' => $kd_agent
+        ], Response::HTTP_ACCEPTED);
+    }
     /**
      * Store a newly created resource in storage.
      */
@@ -115,13 +116,13 @@ class AgentController extends Controller
             'nohp'      => 'required'
         ];
 
-        $validate = Validator::make($data,$rules);
+        $validate = Validator::make($data, $rules);
 
         if ($validate->fails()) {
             return response()->json($validate->errors(), Response::HTTP_MOVED_PERMANENTLY);
         }
 
-        $insert = [ 
+        $insert = [
             'lokasi'    => Session::get('lokasi'),
             'kd_agent'  => $request->kd_agent,
             'agent'     => $request->agent,
@@ -169,7 +170,7 @@ class AgentController extends Controller
             "agent",
             "alamat",
             "nohp"
-            
+
         ]);
 
         $validate = Validator::make($data, [
@@ -178,7 +179,7 @@ class AgentController extends Controller
             "agent"     => 'required',
             "alamat"    => 'required',
             "nohp"      => 'required'
-            
+
         ]);
 
         if ($validate->fails()) {
