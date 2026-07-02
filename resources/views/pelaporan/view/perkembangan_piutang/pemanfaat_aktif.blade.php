@@ -5,6 +5,7 @@
 @extends('pelaporan.layout.base')
 
 @section('content')
+    @php $first_report = true; @endphp
     @foreach ($jenis_pp as $jpp)
         @php
             if ($jpp->pinjaman_anggota->isEmpty()) {
@@ -42,7 +43,10 @@
             }
         @endphp
 
-        <div style="page-break-before: always;"></div>
+        @if (!$first_report)
+            <div style="page-break-before: always;"></div>
+        @endif
+        @php $first_report = false; @endphp
 
         <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
             <tr>
