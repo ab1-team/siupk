@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Kecamatan;
 use App\Models\License;
 use App\Models\User;
 use App\Services\SsoTokenVerifier;
@@ -16,9 +17,11 @@ use Illuminate\Support\Facades\Log;
  * Flow (lihat .guide/sso-subsidiary-guide.md):
  *   1. Ambil token dari query string
  *   2. Verify signature + expiry (HMAC-SHA256, secret sharing dengan Holding)
- *   3. Resolve user lokal & license lokal dari payload + DB lokal
- *   4. Auth::login + session regenerate
- *   5. Audit log + redirect ke dashboard
+ *   3. Resolve kecamatan lokal dari domain request
+ *   4. Resolve user lokal: uname + lokasi=kecamatan + level=1 + jabatan=1
+ *   5. Resolve license lokal
+ *   6. Auth::login + session regenerate
+ *   7. Audit log + redirect ke dashboard
  *
  * PENTING: payload SSO hanya "konteks", bukan "instruksi". User & license
  * harus di-resolve dari database LOKAL subsidiary, bukan pakai uid/lid
@@ -47,23 +50,32 @@ class SsoController extends Controller
             abort(401, 'Token SSO tidak valid atau sudah kedaluwarsa.');
         }
 
-        // 2. Resolve user lokal.
-        //    Skema `users` lokal project ini tidak punya kolom `email`.
-        //    Kita pakai `email` dari payload → cocokkan dengan `uname` lokal
-        //    (asumsi subsidiary mapping email Holding = uname lokal).
-        //    Sesuaikan `resolveLocalUser()` di bawah kalau skema Anda beda
-        //    (mis. ada tabel `sso_user_mappings` atau pakai NIK).
-        $user = $this->resolveLocalUser($payload);
+        // 2. Resolve kecamatan lokal dari domain request
+        $host = $request->getHost();
+        $kecamatan = $this->resolveLocalKecamatan($host);
+        if (! $kecamatan) {
+            Log::warning('SSO: kecamatan tidak ditemukan untuk domain', [
+                'host' => $host,
+                'payload_email' => $payload['email'] ?? null,
+            ]);
+            abort(403, 'Domain tidak terdaftar di subsidiary.');
+        }
+
+        // 3. Resolve user lokal dengan filter:
+        //    uname = payload.email AND lokasi = kecamatan.id
+        //    AND level = 1 AND jabatan = 1 AND status = '1'
+        $user = $this->resolveLocalUser($payload, $kecamatan);
         if (! $user) {
-            abort(403, 'User tidak ditemukan di subsidiary.');
+            Log::warning('SSO: user tidak memenuhi filter lokal', [
+                'host' => $host,
+                'kecamatan_id' => $kecamatan->id,
+                'payload_email' => $payload['email'] ?? null,
+                'payload_lid' => $payload['lid'] ?? null,
+            ]);
+            abort(403, 'User tidak ditemukan atau tidak memiliki akses (level/jabatan) di lokasi ini.');
         }
 
-        // Field aktif di users lokal = `status` ('1' = aktif)
-        if ((string) $user->status !== '1') {
-            abort(403, 'Akun dinonaktifkan.');
-        }
-
-        // 3. Resolve license lokal (opsional tapi direkomendasikan).
+        // 4. Resolve license lokal (opsional tapi direkomendasikan).
         //    `lid` payload = TenantApplication.id di Holding. Kita pakai
         //    sebagai opaque identifier → cocokkan dengan `licenses.id` lokal.
         $license = $this->resolveLocalLicense($payload);
@@ -71,45 +83,61 @@ class SsoController extends Controller
             abort(403, 'License nonaktif atau kedaluwarsa.');
         }
 
-        // 4. Login + session regenerate
+        // 5. Login + session regenerate
         Auth::login($user, remember: false);
         $request->session()->regenerate();
 
-        // 5. Audit log
+        // 6. Audit log
         Log::info('SSO auto-login success', [
             'user_id' => $user->id,
+            'kecamatan_id' => $kecamatan->id,
             'license_id' => $license?->id,
             'payload_uid' => $payload['uid'],
             'payload_email' => $payload['email'],
+            'host' => $host,
         ]);
 
         return redirect()->intended('/dashboard');
     }
 
     /**
-     * Resolve user lokal dari payload SSO.
+     * Resolve kecamatan lokal dari domain request.
      *
-     * Mapping default di project ini: payload.email → users.uname.
-     * Override method ini di subclass / pakai tabel mapping kalau perlu.
+     * Match web_kec ATAU web_alternatif dengan host (exact match).
+     * Override method ini kalau Anda butuh logic matching lain
+     * (mis. wildcard subdomain, port stripping, dll).
+     */
+    protected function resolveLocalKecamatan(string $host): ?Kecamatan
+    {
+        return Kecamatan::where('web_kec', $host)
+            ->orWhere('web_alternatif', $host)
+            ->first();
+    }
+
+    /**
+     * Resolve user lokal dari payload + kecamatan.
+     *
+     * Filter ketat:
+     *   - uname = payload.email (mapping default Holding.email → local.uname)
+     *   - lokasi = kecamatan.id (user harus milik kecamatan tsb)
+     *   - level = 1 (administrator kecamatan)
+     *   - jabatan = 1 (kepala/ketua)
+     *   - status = '1' (akun aktif)
+     *
+     * Override method ini untuk mapping/kriteria lain.
      *
      * @param  array<string, mixed>  $payload
      */
-    protected function resolveLocalUser(array $payload): ?User
+    protected function resolveLocalUser(array $payload, Kecamatan $kecamatan): ?User
     {
         $email = (string) $payload['email'];
 
-        // Coba cocokkan email dengan uname lokal dulu
-        $user = User::where('uname', $email)->first();
-        if ($user) {
-            return $user;
-        }
-
-        // Fallback: kalau ada user dengan id yang kebetulan sama (kasus
-        // subsidiary pakai user_id yang sama dengan Holding). Opsional,
-        // bisa di-skip kalau Anda 100% yakin schema beda.
-        // return User::find($payload['uid']);
-
-        return null;
+        return User::where('uname', $email)
+            ->where('lokasi', $kecamatan->id)
+            ->where('level', 1)
+            ->where('jabatan', 1)
+            ->where('status', '1')
+            ->first();
     }
 
     /**
