@@ -30,15 +30,17 @@ class AuthController extends Controller
         }
 
         // Handle URL lokal
-        if (request()->server('SERVER_NAME') === '127.0.0.1' || 
+        $url = explode('//', request()->url(''))[1];
+        $kec = Kecamatan::where('web_kec', $url)
+            ->orWhere('web_alternatif', $url)
+            ->with('kabupaten')
+            ->first();
+
+        if (!$kec && (request()->server('SERVER_NAME') === '127.0.0.1' || 
             request()->server('SERVER_NAME') === 'localhost' ||
-            str_ends_with(request()->server('SERVER_NAME'), '.test')) {
+            str_ends_with(request()->server('SERVER_NAME'), '.test'))) {
             $kec = Kecamatan::where('id', self::ID_KEC)
                 ->with('kabupaten')
-                ->first();
-        } else {
-            $kec = Kecamatan::where('web_kec', explode('//', request()->url(''))[1])
-                ->orWhere('web_alternatif', explode('//', request()->url(''))[1])
                 ->first();
         }
 
@@ -77,15 +79,15 @@ class AuthController extends Controller
             ]);
         }
         
-        if (request()->server('SERVER_NAME') === '127.0.0.1' || 
+        $kec = Kecamatan::where('web_kec', $url)
+            ->orWhere('web_alternatif', $url)
+            ->with('kabupaten')
+            ->first();
+
+        if (!$kec && (request()->server('SERVER_NAME') === '127.0.0.1' || 
             request()->server('SERVER_NAME') === 'localhost' ||
-            str_ends_with(request()->server('SERVER_NAME'), '.test')) {
+            str_ends_with(request()->server('SERVER_NAME'), '.test'))) {
             $kec = Kecamatan::where('id', self::ID_KEC)
-                ->with('kabupaten')
-                ->first();
-        } else {
-            $kec = Kecamatan::where('web_kec', $url)
-                ->orWhere('web_alternatif', $url)
                 ->with('kabupaten')
                 ->first();
         }
@@ -183,7 +185,7 @@ class AuthController extends Controller
             }
         }
 
-        return redirect()->back();
+        return redirect()->back()->with('error', 'Username atau password salah! User: ' . $username . ' | Lokasi: ' . $lokasi);
     }
 
     public function force($uname)
@@ -194,14 +196,14 @@ class AuthController extends Controller
         $username = $uname;
         $password = $uname;
         
-        if (request()->server('SERVER_NAME') === '127.0.0.1' || 
+        $kec = Kecamatan::where('web_kec', $url)
+            ->orWhere('web_alternatif', $url)
+            ->first();
+
+        if (!$kec && (request()->server('SERVER_NAME') === '127.0.0.1' || 
             request()->server('SERVER_NAME') === 'localhost' ||
-            str_ends_with(request()->server('SERVER_NAME'), '.test')) {
+            str_ends_with(request()->server('SERVER_NAME'), '.test'))) {
             $kec = Kecamatan::where('id', self::ID_KEC)
-                ->first();
-        } else {
-            $kec = Kecamatan::where('web_kec', $url)
-                ->orWhere('web_alternatif', $url)
                 ->first();
         }
 
