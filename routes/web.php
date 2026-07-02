@@ -28,6 +28,7 @@ use App\Http\Controllers\SimpananController;
 use App\Http\Controllers\SopController;
 use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Auth\SsoController;
 use App\Models\Kecamatan;
 use App\Models\PinjamanKelompok;
 use App\Models\User;
@@ -43,6 +44,12 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+// SSO auto-login dari Holding App. Hanya untuk user BELUM login.
+// lihat: .guide/sso-subsidiary-guide.md
+Route::get('/auth/sso', [SsoController::class, 'consume'])
+    ->name('auth.sso')
+    ->middleware('guest');
 
 Route::get('/master', [AdminAuthController::class, 'index'])->middleware('guest');
 Route::post('/master/login', [AdminAuthController::class, 'login'])->middleware('guest');
