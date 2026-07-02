@@ -40,13 +40,9 @@
                 
                 $grouped_data[$kd_desa]['kelompok'][$id_pinkel]['anggota'][] = $pinj;
             }
-
-            $show_break = false;
         @endphp
 
-        @if ($show_break && $jpp->nama_jpp != 'SPP')
-            <div class="break"></div>
-        @endif
+        <div style="page-break-before: always;"></div>
 
         <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
             <tr>
@@ -183,8 +179,5 @@
             @endif
         </table>
 
-        @php
-            $show_break = true;
-        @endphp
     @endforeach
 @endsection
