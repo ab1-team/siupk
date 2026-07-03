@@ -1,6 +1,53 @@
 @php
     use App\Utils\Tanggal;
     $section = 0;
+    
+    // Ambil data kolek dari database
+    $kolekData = $kec->kolek ? json_decode($kec->kolek, true) : [];
+    
+    // Filter hanya kolek yang aktif (ada nama)
+    $activeKolek = array_filter($kolekData, function($k) {
+        return !empty($k['nama']);
+    });
+    
+    // Fungsi untuk menentukan tingkat kolek
+    function getTingkatKolekDesa($kolek_bulan, $kolekData) {
+        if (empty($kolekData)) {
+            return 0;
+        }
+        
+        // Loop dari tingkat kolek terendah ke tertinggi
+        for ($i = 0; $i < count($kolekData); $i++) {
+            $kolek = $kolekData[$i];
+            
+            // Skip jika kolek tidak aktif
+            if (empty($kolek['nama'])) {
+                continue;
+            }
+            
+            $durasi = floatval($kolek['durasi']);
+            $satuan = $kolek['satuan'];
+            
+            // Konversi durasi ke bulan jika satuan hari
+            if ($satuan == 'hari') {
+                $durasi = $durasi / 30;
+            }
+            
+            // Jika kolek_bulan kurang dari durasi, maka masuk ke tingkat ini
+            if ($kolek_bulan < $durasi) {
+                return $i;
+            }
+        }
+        
+        // Jika melebihi semua durasi, masuk ke tingkat kolek tertinggi
+        for ($i = count($kolekData) - 1; $i >= 0; $i--) {
+            if (!empty($kolekData[$i]['nama'])) {
+                return $i;
+            }
+        }
+        
+        return 0;
+    }
 @endphp
 
 @extends('pelaporan.layout.base')
@@ -20,12 +67,10 @@
             $t_saldo = 0;
             $t_tunggakan_pokok = 0;
             $t_tunggakan_jasa = 0;
-            $t_kolek1 = 0;
-            $t_kolek2 = 0;
-            $t_kolek3 = 0;
-            $t_kolek4 = 0;
-            $t_kolek5 = 0;
-                   @endphp
+            
+            // Inisialisasi total kolek secara dinamis
+            $t_kolek = array_fill(0, count($kolekData), 0);
+        @endphp
         @if ($jpp->nama_jpp != 'SPP')
             <div class="break"></div>
         @endif
@@ -52,11 +97,9 @@
                 <th class="t l b" width="23%">Desa</th>
                 <th class="t l b" width="10%">Saldo</th>
                 <th class="t l b" width="10%">Tunggakan</th>
-                <th class="t l b">KOLEK I</th>
-                <th class="t l b">KOLEK II</th>
-                <th class="t l b ">KOLEK III</th>
-                <th class="t l b">KOLEK IV</th>
-                <th class="t l b r">KOLEK V</th>
+                @foreach ($activeKolek as $index => $kolek)
+                    <th class="t l b {{ $loop->last ? 'r' : '' }}">{{ strtoupper($kolek['nama']) }}</th>
+                @endforeach
             </tr>
             
 
@@ -74,22 +117,20 @@
                             $t_saldo += $j_saldo;
                             $t_tunggakan_pokok += $j_tunggakan_pokok;
                             $t_tunggakan_jasa += $j_tunggakan_jasa;
-                            $t_kolek1 += $j_kolek1;
-                            $t_kolek2 += $j_kolek2;
-                            $t_kolek3 += $j_kolek3;
-                            $t_kolek4 += $j_kolek4;
-                            $t_kolek5 += $j_kolek5;
-                       
+                            
+                            foreach ($j_kolek as $idx => $val) {
+                                $t_kolek[$idx] += $val;
+                            }
                         @endphp
                         <tr style="font-weight: bold;">
                             <td class="t l b" align="left" colspan="2">{{ $nomor++ }}. {{ $nama_desa }}</td>
                             <td class="t l b" align="right">{{ number_format($j_saldo) }}</td>
                             <td class="t l b" align="right">{{ number_format($j_tunggakan_pokok) }}</td>
-                            <td class="t l b" align="right">{{ number_format($j_kolek1) }}</td>
-                            <td class="t l b" align="right">{{ number_format($j_kolek2) }}</td>
-                            <td class="t l b " align="right">{{ number_format($j_kolek3) }}</td>
-                            <td class="t l b" align="right">{{ number_format($j_kolek4) }}</td>
-                            <td class="t l b r" align="right">{{ number_format($j_kolek5) }}</td>
+                            @foreach ($activeKolek as $idx => $kolek)
+                                <td class="t l b {{ $loop->last ? 'r' : '' }}" align="right">
+                                    {{ number_format($j_kolek[$idx] ?? 0) }}
+                                </td>
+                            @endforeach
                         </tr>
                     @endif
 
@@ -98,11 +139,7 @@
                         $j_saldo = 0;
                         $j_tunggakan_pokok = 0;
                         $j_tunggakan_jasa = 0;
-                        $j_kolek1 = 0;
-                        $j_kolek2 = 0;
-                        $j_kolek3 = 0;
-                        $j_kolek4 = 0;
-                        $j_kolek5 = 0;
+                        $j_kolek = array_fill(0, count($kolekData), 0);
                         $section = $pinkel->kd_desa;
                         $nama_desa = $pinkel->sebutan_desa . ' ' . $pinkel->nama_desa;
                     @endphp
@@ -152,17 +189,7 @@
 
                     $pross = $saldo_pokok == 0 ? 0 : $saldo_pokok / $pinkel->alokasi;
 
-                    if ($pinkel->tgl_lunas <= $tgl_kondisi && $pinkel->status == 'L') {
-                        $tunggakan_pokok = 0;
-                        $tunggakan_jasa = 0;
-                        $saldo_pokok = 0;
-                        $saldo_jasa = 0;
-                    } elseif ($pinkel->tgl_lunas <= $tgl_kondisi && $pinkel->status == 'R') {
-                        $tunggakan_pokok = 0;
-                        $tunggakan_jasa = 0;
-                        $saldo_pokok = 0;
-                        $saldo_jasa = 0;
-                    } elseif ($pinkel->tgl_lunas <= $tgl_kondisi && $pinkel->status == 'H') {
+                    if ($pinkel->tgl_lunas <= $tgl_kondisi && in_array($pinkel->status, ['L', 'R', 'H'])) {
                         $tunggakan_pokok = 0;
                         $tunggakan_jasa = 0;
                         $saldo_pokok = 0;
@@ -183,49 +210,23 @@
                     if ($wajib_pokok != '0') {
                         $_kolek = $tunggakan_pokok / $wajib_pokok;
                     }
-                    $kolek = ceil($_kolek + ($selisih - $angsuran_ke));
+                    $kolek_bulan = round($_kolek + ($selisih - $angsuran_ke));
+
+                    // Tentukan tingkat kolek berdasarkan konfigurasi database
+                    $tingkat_kolek = getTingkatKolekDesa($kolek_bulan, $kolekData);
                     
-                    if ($kolek <= 0) {
-                    $kolek1 = $saldo_pokok;
-                    $kolek2 = 0;
-                    $kolek3 = 0;
-                    $kolek4 = 0;
-                    $kolek5 = 0;
-                } elseif ($kolek > 0 && $kolek <= 2) {
-                    $kolek1 = 0;
-                    $kolek2 = $saldo_pokok;
-                    $kolek3 = 0;
-                    $kolek4 = 0;
-                    $kolek5 = 0;
-                } elseif ($kolek > 2 && $kolek <= 4) {
-                    $kolek1 = 0;
-                    $kolek2 = 0;
-                    $kolek3 = $saldo_pokok;
-                    $kolek4 = 0;
-                    $kolek5 = 0;
-                } elseif ($kolek > 4 && $kolek <= 6) {
-                    $kolek1 = 0;
-                    $kolek2 = 0;
-                    $kolek3 = 0;
-                    $kolek4 = $saldo_pokok;
-                    $kolek5 = 0;
-                } elseif ($kolek > 6) {
-                    $kolek1 = 0;
-                    $kolek2 = 0;
-                    $kolek3 = 0;
-                    $kolek4 = 0;
-                    $kolek5 = $saldo_pokok;
-                }
+                    // Inisialisasi array kolek untuk baris ini
+                    $row_kolek = array_fill(0, count($kolekData), 0);
+                    $row_kolek[$tingkat_kolek] = $saldo_pokok;
 
                     $j_alokasi += $pinkel->alokasi;
                     $j_saldo += $saldo_pokok;
                     $j_tunggakan_pokok += $tunggakan_pokok;
                     $j_tunggakan_jasa += $tunggakan_jasa;
-                    $j_kolek1 += $kolek1;
-                    $j_kolek2 += $kolek2;
-                    $j_kolek3 += $kolek3;
-                    $j_kolek4 += $kolek4;
-                    $j_kolek5 += $kolek5;
+                    
+                    foreach ($row_kolek as $idx => $val) {
+                        $j_kolek[$idx] += $val;
+                    }
                 @endphp
             @endforeach
 
@@ -236,22 +237,21 @@
                     $t_saldo += $j_saldo;
                     $t_tunggakan_pokok += $j_tunggakan_pokok;
                     $t_tunggakan_jasa += $j_tunggakan_jasa;
-                    $t_kolek1 += $j_kolek1;
-                    $t_kolek2 += $j_kolek2;
-                    $t_kolek3 += $j_kolek3;
-                    $t_kolek4 += $j_kolek4;
-                    $t_kolek5 += $j_kolek5;
+                    
+                    foreach ($j_kolek as $idx => $val) {
+                        $t_kolek[$idx] += $val;
+                    }
                 @endphp
                 <tr style="font-weight: bold;">
                 
                     <td class="t l b" align="left" colspan="2">{{ $nomor++ }}. {{ $nama_desa }}</td>
                     <td class="t l b" align="right">{{ number_format($j_saldo) }}</td>
                     <td class="t l b" align="right">{{ number_format($j_tunggakan_pokok) }}</td>
-                    <td class="t l b" align="right">{{ number_format($j_kolek1) }}</td>
-                    <td class="t l b" align="right">{{ number_format($j_kolek2) }}</td>
-                    <td class="t l b" align="right">{{ number_format($j_kolek3) }}</td>
-                    <td class="t l b" align="right">{{ number_format($j_kolek4) }}</td>
-                    <td class="t l b r" align="right">{{ number_format($j_kolek5) }}</td>
+                    @foreach ($activeKolek as $idx => $kolek)
+                        <td class="t l b {{ $loop->last ? 'r' : '' }}" align="right">
+                            {{ number_format($j_kolek[$idx] ?? 0) }}
+                        </td>
+                    @endforeach
                 </tr>
 
                 @php
@@ -259,50 +259,57 @@
                     if ($t_saldo) {
                         $t_pross = $t_saldo / $t_alokasi;
                     }
+                    
+                    // Hitung total resiko pinjaman
+                    $total_resiko = 0;
+                    foreach ($activeKolek as $idx => $kolek) {
+                        $prosentase = floatval($kolek['prosentase']);
+                        $total_resiko += ($t_kolek[$idx] * $prosentase) / 100;
+                    }
+                    $total_resiko = round($total_resiko);
                 @endphp
                 <tr>
-                    <td colspan="9" style="padding: 0px !important;">
+                    <td colspan="{{ 4 + count($activeKolek) }}" style="padding: 0px !important;">
                         <table border="0" width="100%" cellspacing="0" cellpadding="0"
                             style="font-size: 11px; table-layout: fixed;">
                             <tr style="font-weight: bold;">
                                 <td width="25%" class="t l b" align="center" height="20">J U M L A H</td>
                                 <td width="10%" class="t l b" align="right">{{ number_format($t_saldo) }}</td>
-                                <td width="10%" class="t l b r" align="right">{{ number_format($t_tunggakan_pokok) }}
-                                </td>
-                                <td class="t l b" align="right">{{ number_format($t_kolek1) }}</td>
-                                <td class="t l b" align="right">{{ number_format($t_kolek2) }}</td>
-                                <td class="t l b" align="right">{{ number_format($t_kolek3) }}</td>
-                                <td class="t l b" align="right">{{ number_format($t_kolek4) }}</td>
-                                <td class="t l b r" align="right">{{ number_format($t_kolek5) }}</td>
+                                <td width="10%" class="t l b" align="right">{{ number_format($t_tunggakan_pokok) }}</td>
+                                @foreach ($activeKolek as $idx => $kolek)
+                                    <td class="t l b {{ $loop->last ? 'r' : '' }}" align="right">
+                                        {{ number_format($t_kolek[$idx] ?? 0) }}
+                                    </td>
+                                @endforeach
                             </tr>
                             <tr style="font-weight: bold;">
                                 <td class="t l b" align="center" rowspan="2" height="20">Resiko Pinjaman</td>
-                                <td class="t l b" colspan="2" align="center">(Kolek I + Kolek II + Kolek III + Kolek IV + Kolek V)</td>
-                                <td class="t l b" align="center">Kolek I * 1%</td>
-                                <td class="t l b" align="center">Kolek II * 10%</td>
-                                <td class="t l b" align="center">Kolek III * 25%</td>
-                                <td class="t l b" align="center">Kolek IV * 50%</td>
-                                <td class="t l b r" align="center">Kolek V * 100%</td>
+                                <td class="t l b" colspan="2" align="center">
+                                    ({{ implode(' + ', array_map(function($k) { return $k['nama']; }, $activeKolek)) }})
+                                </td>
+                                @foreach ($activeKolek as $idx => $kolek)
+                                    <td class="t l b {{ $loop->last ? 'r' : '' }}" align="center">
+                                        {{ $kolek['nama'] }} * {{ $kolek['prosentase'] }}%
+                                    </td>
+                                @endforeach
                             </tr>
                             <tr>
                                 <td class="t l b" align="center" colspan="2">
-                                    {{ number_format(
-                                        ($t_kolek1 * 1) / 100 + 
-                                        ($t_kolek2 * 10) / 100 + 
-                                        ($t_kolek3 * 25) / 100 + 
-                                        ($t_kolek4 * 50) / 100 + 
-                                        ($t_kolek5 * 100) / 100
-                                    ) }}
+                                    {{ number_format($total_resiko) }}
                                 </td>
-                                <td class="t l b" align="center">{{ number_format(($t_kolek1 * 1) / 100) }}</td>
-                                <td class="t l b" align="center">{{ number_format(($t_kolek2 * 10) / 100) }}</td>
-                                <td class="t l b" align="center">{{ number_format(($t_kolek3 * 25) / 100) }}</td>
-                                <td class="t l b" align="center">{{ number_format(($t_kolek4 * 50) / 100) }}</td>
-                                <td class="t l b r" align="center">{{ number_format(($t_kolek5 * 100) / 100) }}</td>
+                                @foreach ($activeKolek as $idx => $kolek)
+                                    @php
+                                        $prosentase = floatval($kolek['prosentase']);
+                                        $nilai_resiko = ($t_kolek[$idx] * $prosentase) / 100;
+                                    @endphp
+                                    <td class="t l b {{ $loop->last ? 'r' : '' }}" align="center">
+                                        {{ number_format($nilai_resiko) }}
+                                    </td>
+                                @endforeach
                             </tr>
 
                             <tr>
-                                <td colspan="8">
+                                <td colspan="{{ 3 + count($activeKolek) }}">
                                     <div style="margin-top: 16px;"></div>
                                     {!! json_decode(str_replace('{tanggal}', $tanggal_kondisi, $kec->ttd->tanda_tangan_pelaporan), true) !!}
                                 </td>

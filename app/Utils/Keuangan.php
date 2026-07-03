@@ -480,8 +480,9 @@ public function tingkat_kesehatan($tgl_kondisi, $data = [])
     $sum_saldo_pokok = 0;
     $sum_saldo_jasa = 0;
     
-    // Inisialisasi array kolek secara dinamis
-    $sum_kolek = array_fill(0, count($kolekData), 0);
+    // Inisialisasi array kolek secara dinamis - TERPISAH KELMPOK DAN INDIVIDU
+    $sum_kolek_kelompok = array_fill(0, count($kolekData), 0);
+    $sum_kolek_individu = array_fill(0, count($kolekData), 0);
     
     // Query pinjaman kelompok - PERSIS SEPERTI DI CONTROLLER
     $pinjaman_kelompok = PinjamanKelompok::where('sistem_angsuran', '!=', '12')
@@ -584,7 +585,7 @@ public function tingkat_kesehatan($tgl_kondisi, $data = [])
         $sum_saldo_jasa += $hasil['saldo_jasa'];
         
         // Tambahkan ke array kolek sesuai tingkat
-        $sum_kolek[$hasil['tingkat_kolek']] += $hasil['saldo_pokok'];
+        $sum_kolek_kelompok[$hasil['tingkat_kolek']] += $hasil['saldo_pokok'];
     }
     
     // Proses pinjaman individu - PAKAI RUMUS YANG SAMA DENGAN VIEW
@@ -597,15 +598,21 @@ public function tingkat_kesehatan($tgl_kondisi, $data = [])
         $sum_saldo_jasa += $hasil['saldo_jasa'];
         
         // Tambahkan ke array kolek sesuai tingkat
-        $sum_kolek[$hasil['tingkat_kolek']] += $hasil['saldo_pokok'];
+        $sum_kolek_individu[$hasil['tingkat_kolek']] += $hasil['saldo_pokok'];
     }
     
-    // Hitung total kolek berdasarkan prosentase
-    $total_kolek = 0;
+    // Hitung total kolek berdasarkan prosentase - TERPISAH KELMPOK DAN INDIVIDU
+    // SAMA PERSIS DENGAN CARA USER JUMLAHKAN MANUAL DARI 2 LAPORAN
+    $total_kolek_kelompok = 0;
+    $total_kolek_individu = 0;
+    $sum_kolek = array_fill(0, count($kolekData), 0);
     foreach ($activeKolek as $idx => $kolek) {
         $prosentase = floatval($kolek['prosentase']);
-        $total_kolek += ($sum_kolek[$idx] * $prosentase) / 100;
+        $total_kolek_kelompok += round(($sum_kolek_kelompok[$idx] * $prosentase) / 100);
+        $total_kolek_individu += round(($sum_kolek_individu[$idx] * $prosentase) / 100);
+        $sum_kolek[$idx] = $sum_kolek_kelompok[$idx] + $sum_kolek_individu[$idx];
     }
+    $total_kolek = $total_kolek_kelompok + $total_kolek_individu;
     
     return [
         'nunggak_pokok' => $sum_nunggak_pokok,
