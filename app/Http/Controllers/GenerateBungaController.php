@@ -56,7 +56,20 @@ class GenerateBungaController extends Controller
         foreach ($simpananBatch as $simpanan) {
             RealSimpanan::where('cif', $simpanan->id)->delete();
 
-            $trx = $simpanan->trx;
+            $trx = Transaksi::where('id_simp', $simpanan->id)
+                ->whereNull('deleted_at')
+                ->orderBy('tgl_transaksi', 'ASC')
+                ->orderByRaw("CASE
+                    WHEN rekening_debit LIKE '1.1.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 0
+                    WHEN rekening_debit LIKE '5.2.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 1
+                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '1.1.01%' THEN 2
+                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '2.1.03%' THEN 3
+                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '4.1.03%' THEN 4
+                    ELSE 5
+                END")
+                ->orderBy('idt', 'ASC')
+                ->get();
+
             $sum = 0;
             $str = 1;
 
