@@ -5,27 +5,40 @@ use Illuminate\Http\Request;
 use App\Models\Simpanan;
 use App\Models\Transaksi;
 use App\Models\RealSimpanan;
+use App\Models\Kecamatan;
 use Session;
 use DB;
+use URL;
 use Carbon\Carbon;
 
 class GenerateBungaController extends Controller
 {
     public function index(Request $request)
     {
+        $kec = Kecamatan::where('web_kec', explode('//', URL::to('/'))[1])
+            ->orWhere('web_alternatif', explode('//', URL::to('/'))[1])
+            ->first();
+
+        if ($kec) {
+            Session::put('lokasi', $kec->id);
+        }
+
         $id = $request->get('id');
         $start = intval($request->get('start', 0));
         $perPage = intval($request->get('limit', 25));
 
-        if (!$id) {
+        if ($id === null || $id === '') {
             return view('generate_simpanan.index');
         }
 
-        // ID bisa banyak, dipisah koma
-        $ids = collect(explode(',', $id))
-            ->map(fn($i) => trim($i))
-            ->filter(fn($i) => is_numeric($i))
-            ->toArray();
+        if ($id === 'all') {
+            $ids = Simpanan::pluck('id')->toArray();
+        } else {
+            $ids = collect(explode(',', $id))
+                ->map(fn($i) => trim($i))
+                ->filter(fn($i) => is_numeric($i))
+                ->toArray();
+        }
 
         if (empty($ids)) {
             return back()->with('error', 'ID tidak valid');
