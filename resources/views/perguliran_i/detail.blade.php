@@ -197,11 +197,6 @@
                         <i class="fa fa-sync"></i> Sinkronisasi
                     </button>
                 @endif
-                @if ($perguliran_i->status == 'A' && $user->jabatan == '1' && $user->level == '1')
-                    <button class="btn btn-primary btn-sm float-end me-2" data-bs-toggle="modal" data-bs-target="#Rescedule" type="button">
-                        <i class="fa fa-calendar-alt"></i> Resceduling Pinjaman
-                    </button>
-                @endif
             @endif
         </div>
     </div>
