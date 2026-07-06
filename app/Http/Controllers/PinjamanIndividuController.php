@@ -454,7 +454,8 @@ class PinjamanIndividuController extends Controller
         $title = 'Detail Pinjaman anggota ' . $perguliran_i->anggota->namadepan;
         $real = RealAngsuranI::where('loan_id', $perguliran_i->id)->orderBy('tgl_transaksi', 'DESC')->orderBy('id', 'DESC')->first();
         $sistem_angsuran = SistemAngsuran::all();
-        return view('perguliran_i.detail')->with(compact('title', 'perguliran_i', 'real', 'sistem_angsuran'));
+        $user = auth()->user();
+        return view('perguliran_i.detail')->with(compact('title', 'perguliran_i', 'real', 'sistem_angsuran', 'user'));
     }
 
     public function pelunasan(PinjamanIndividu $perguliran_i)

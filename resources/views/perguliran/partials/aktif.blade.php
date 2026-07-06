@@ -347,7 +347,7 @@
             <div class="d-flex justify-content-end mt-3">
                 <button type="button" data-bs-toggle="modal" data-bs-target="#Rescedule"
                     class="btn btn-warning btn-sm"
-                    @if (!in_array('perguliran.resceduling', Session::get('tombol', [])))
+                    @if (!in_array('perguliran.resceduling', Session::get('tombol', [])) || auth()->user()->jabatan != '1' || auth()->user()->level != '1')
                         disabled
                     @endif
                 >Resceduling Pinjaman</button>
