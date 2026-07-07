@@ -56,23 +56,22 @@ class SsoController extends Controller
         if (! $kecamatan) {
             Log::warning('SSO: kecamatan tidak ditemukan untuk domain', [
                 'host' => $host,
-                'payload_email' => $payload['email'] ?? null,
+                'payload_uid' => $payload['uid'] ?? null,
             ]);
             abort(403, 'Domain tidak terdaftar di subsidiary.');
         }
 
-        // 3. Resolve user lokal dengan filter:
-        //    uname = payload.email AND lokasi = kecamatan.id
-        //    AND level = 1 AND jabatan = 1 AND status = '1'
-        $user = $this->resolveLocalUser($payload, $kecamatan);
+        // 3. Resolve user lokal TANPA payload identity mapping.
+        //    Asumsi: 1 perusahaan = 1 kepala (level=1, jabatan=1) per lokasi.
+        //    Auto-login user unik yang eligible di kecamatan tsb.
+        $user = $this->resolveLocalUser($kecamatan);
         if (! $user) {
-            Log::warning('SSO: user tidak memenuhi filter lokal', [
+            Log::warning('SSO: tidak ada user eligible di lokasi', [
                 'host' => $host,
                 'kecamatan_id' => $kecamatan->id,
-                'payload_email' => $payload['email'] ?? null,
-                'payload_lid' => $payload['lid'] ?? null,
+                'payload_uid' => $payload['uid'] ?? null,
             ]);
-            abort(403, 'User tidak ditemukan atau tidak memiliki akses (level/jabatan) di lokasi ini.');
+            abort(403, 'Tidak ada user kepala (level=1, jabatan=1) yang aktif di lokasi ini.');
         }
 
         // 4. Resolve license lokal (opsional tapi direkomendasikan).
@@ -93,7 +92,6 @@ class SsoController extends Controller
             'kecamatan_id' => $kecamatan->id,
             'license_id' => $license?->id,
             'payload_uid' => $payload['uid'],
-            'payload_email' => $payload['email'],
             'host' => $host,
         ]);
 
@@ -115,29 +113,35 @@ class SsoController extends Controller
     }
 
     /**
-     * Resolve user lokal dari payload + kecamatan.
+     * Resolve user lokal dari kecamatan (tanpa payload identity).
      *
-     * Filter ketat:
-     *   - uname = payload.email (mapping default Holding.email → local.uname)
-     *   - lokasi = kecamatan.id (user harus milik kecamatan tsb)
-     *   - level = 1 (administrator kecamatan)
-     *   - jabatan = 1 (kepala/ketua)
-     *   - status = '1' (akun aktif)
+     * Asumsi: user dengan level=1 + jabatan=1 + status='1' adalah kepala
+     * perusahaan. Cari di kecamatan tsb, kalau >1 (data anomaly) ambil
+     * yang paling baru (orderBy id desc) dan log warning untuk audit.
      *
-     * Override method ini untuk mapping/kriteria lain.
-     *
-     * @param  array<string, mixed>  $payload
+     * Return null jika 0 user eligible.
      */
-    protected function resolveLocalUser(array $payload, Kecamatan $kecamatan): ?User
+    protected function resolveLocalUser(Kecamatan $kecamatan): ?User
     {
-        $email = (string) $payload['email'];
-
-        return User::where('uname', $email)
-            ->where('lokasi', $kecamatan->id)
+        $query = User::where('lokasi', $kecamatan->id)
             ->where('level', 1)
             ->where('jabatan', 1)
-            ->where('status', '1')
-            ->first();
+            ->where('status', '1');
+
+        $count = $query->count();
+        if ($count === 0) {
+            return null;
+        }
+
+        if ($count > 1) {
+            Log::warning('SSO: >1 user kepala eligible di lokasi, ambil yang terbaru', [
+                'kecamatan_id' => $kecamatan->id,
+                'kecamatan_nama' => $kecamatan->nama_kec,
+                'count' => $count,
+            ]);
+        }
+
+        return $query->orderBy('id', 'desc')->first();
     }
 
     /**
