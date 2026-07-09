@@ -692,35 +692,48 @@
         $(document).on('click', '#KirimPesan', function(e) {
             e.preventDefault()
 
-            var messages = [];
-            $('[data-input=checked]:checked').each(function(i) {
-                var pesan = this.value
+            const deviceId = '{{ $kec->wa_session?->device_id ?? '' }}'
+            const deviceKey = '{{ $kec->wa_session?->device_key ?? '' }}'
 
-                var number = pesan.split('||')[0]
-                var kelompok = pesan.split('||')[1]
-                var msg = pesan.split('||')[2]
+            if (!deviceId || !deviceKey) {
+                Swal.fire('Error', 'WhatsApp belum terhubung. Scan QR di Pengaturan terlebih dahulu.', 'error')
+                return
+            }
 
-                if (!number.startsWith('08') && !number.startsWith('628')) {
-                    number = '0' + number;
+            var rows = []
+            $('.wa-row:checked').each(function() {
+                try {
+                    rows.push(JSON.parse($(this).attr('data-row')))
+                } catch (err) {
+                    console.error('parse row error', err)
                 }
+            })
 
-                messages.push({
-                    number,
-                    message: msg
-                })
-            });
+            if (rows.length === 0) {
+                Swal.fire('Info', 'Pilih minimal satu kelompok.', 'info')
+                return
+            }
 
             $.ajax({
                 type: 'POST',
-                url: '{{ $api }}/api/message/{{ $kec->token }}/send_messages',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    messages
-                }),
+                url: '/dashboard/tagihan/kirim',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                    tgl_tagihan: $('#tgl_tagihan').val(),
+                    tgl_pembayaran: $('#tgl_pembayaran').val(),
+                    rows: rows,
+                },
                 success: function(result) {
                     if (result.success) {
-                        Swal.fire('Berhasil', 'Pesan Berhasil Dikirim', 'success')
+                        Swal.fire('Berhasil', result.msg || 'Pesan berhasil dikirim', 'success')
+                    } else {
+                        Swal.fire('Error', result.msg || 'Gagal mengirim', 'error')
                     }
+                },
+                error: function(xhr) {
+                    var msg = 'Gagal menghubungi gateway.'
+                    if (xhr.responseJSON && xhr.responseJSON.msg) msg = xhr.responseJSON.msg
+                    Swal.fire('Error', msg, 'error')
                 }
             })
         })

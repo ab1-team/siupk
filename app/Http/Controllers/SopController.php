@@ -7,6 +7,8 @@ use App\Models\AkunLevel1;
 use App\Models\Kecamatan;
 use App\Models\TandaTanganLaporan;
 use App\Models\User;
+use App\Models\Whatsapp;
+use App\Services\WaService;
 use App\Utils\Pinjaman;
 use App\Utils\Tanggal;
 use DOMDocument;
@@ -19,14 +21,142 @@ use Yajra\DataTables\DataTables;
 
 class SopController extends Controller
 {
+    protected WaService $wa;
+
+    public function __construct(WaService $wa)
+    {
+        $this->wa = $wa;
+    }
+
     public function index()
     {
-        $api = env('APP_API', 'https://api-whatsapp.siupk.net');
+        $api = $this->wa->baseUrl();
+        $apiKey = $this->wa->masterKey();
 
-        $kec = Kecamatan::where('id', Session::get('lokasi'))->with('ttd')->first();
+        $kec = Kecamatan::where('id', Session::get('lokasi'))->with(['ttd', 'wa_session'])->first();
+
+        if (!$kec->token) {
+            $kec->token = bin2hex(random_bytes(16));
+            $kec->save();
+        }
+
+        $existingWa = is_array($kec->whatsapp) ? $kec->whatsapp : (json_decode($kec->whatsapp, true) ?: []);
+        $needsDefault = empty($existingWa['tagihan']) && empty($existingWa['angsuran']);
+
+        if ($needsDefault) {
+            $existingWa['tagihan'] = WaService::defaultTemplate('tagihan');
+            $existingWa['angsuran'] = WaService::defaultTemplate('angsuran');
+
+            $kec->whatsapp = json_encode($existingWa);
+            $kec->save();
+
+            $kec->refresh();
+            $kec->load('wa_session');
+        }
+
         $token = $kec->token;
         $title = "Personalisasi SOP";
-        return view('sop.index')->with(compact('title', 'kec', 'api', 'token'));
+        return view('sop.index')->with(compact('title', 'kec', 'api', 'apiKey', 'token'));
+    }
+
+    public function scan_whatsapp(Request $request)
+    {
+        $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
+        $name = 'siupk-' . ($kec->token ?? $kec->id);
+
+        $result = $this->wa->createDevice($name);
+
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'msg' => $result['error'] ?? 'Gagal membuat device di gateway.',
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return response()->json([
+            'success' => true,
+            'device_id' => $result['device_id'],
+            'device_key' => $result['device_key'],
+            'msg' => 'Device dibuat, scan QR untuk menghubungkan.',
+        ]);
+    }
+
+    public function save_whatsapp_session(Request $request)
+    {
+        $data = $request->only(['device_id', 'device_key', 'status']);
+
+        $validate = Validator::make($data, [
+            'device_id' => 'required',
+            'device_key' => 'required',
+        ]);
+
+        if ($validate->fails()) {
+            return response()->json([
+                'success' => false,
+                'msg' => 'device_id & device_key wajib diisi.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $lokasi = Session::get('lokasi');
+        $kec = Kecamatan::where('id', $lokasi)->first();
+
+        Whatsapp::updateOrCreate(
+            ['lokasi' => $lokasi],
+            [
+                'nama' => $kec->nama_kec ?? null,
+                'token' => $kec->token ?? null,
+                'device_id' => $data['device_id'],
+                'device_key' => $data['device_key'],
+                'status' => $data['status'] ?? 'connected',
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'msg' => 'Device WhatsApp berhasil disimpan.',
+        ]);
+    }
+
+    public function delete_whatsapp_session(Request $request)
+    {
+        $lokasi = Session::get('lokasi');
+        $wa = Whatsapp::where('lokasi', $lokasi)->first();
+
+        if ($wa && $wa->device_id) {
+            $this->wa->logoutDevice($wa->device_id);
+        }
+
+        if ($wa) {
+            $wa->delete();
+        }
+
+        return response()->json([
+            'success' => true,
+            'msg' => 'Koneksi WhatsApp dihapus.',
+        ]);
+    }
+
+    public function whatsapp_status(Request $request)
+    {
+        $lokasi = Session::get('lokasi');
+        $wa = Whatsapp::where('lokasi', $lokasi)->first();
+
+        if (!$wa || !$wa->device_id) {
+            return response()->json([
+                'success' => true,
+                'connected' => false,
+            ]);
+        }
+
+        $status = $this->wa->deviceStatus($wa->device_id);
+
+        return response()->json([
+            'success' => true,
+            'connected' => $wa->isConnected(),
+            'status' => $wa->status,
+            'phone' => $wa->phone_number,
+            'remote' => $status,
+        ]);
     }
 
     public function coa()
@@ -551,7 +681,7 @@ class SopController extends Controller
 
         $data = $request->only([
             'tagihan',
-            'angsuran'
+            'angsuran',
         ]);
 
         $validate = Validator::make($data, [
@@ -563,13 +693,12 @@ class SopController extends Controller
             return response()->json($validate->errors(), Response::HTTP_MOVED_PERMANENTLY);
         }
 
-        $wa = [
-            'tagihan' => $data['tagihan'],
-            'angsuran' => $data['angsuran']
-        ];
+        $existing = is_array($kec->whatsapp) ? $kec->whatsapp : (json_decode($kec->whatsapp, true) ?: []);
+        $existing['tagihan'] = $data['tagihan'];
+        $existing['angsuran'] = $data['angsuran'];
 
         Kecamatan::where('id', $kec->id)->update([
-            'whatsapp' => $wa
+            'whatsapp' => json_encode($existing),
         ]);
 
         return response()->json([

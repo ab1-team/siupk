@@ -510,13 +510,27 @@
         })
 
         function sendMsg(number, nama, msg, repeat = 0) {
+            const deviceId = '{{ $kec->wa_session?->device_id ?? '' }}'
+            const deviceKey = '{{ $kec->wa_session?->device_key ?? '' }}'
+
+            if (!deviceId || !deviceKey) {
+                MultiToast('error', 'WhatsApp belum terhubung untuk lokasi ini.')
+                return
+            }
+
             $.ajax({
                 type: 'post',
-                url: '{{ $api }}/api/message/{{ $kec->token }}/send_message',
-                data: {
-                    number: number,
-                    message: msg
+                url: '{{ $api }}/api/send/text',
+                headers: {
+                    'x-api-key': deviceKey,
+                    'Accept': 'application/json',
                 },
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    device_id: deviceId,
+                    to: number,
+                    message: msg,
+                }),
                 success: function(result) {
                     MultiToast('success', 'Pesan untuk kelompok ' + nama + ' berhasil dikirim')
                 },

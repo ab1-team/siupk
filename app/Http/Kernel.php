@@ -68,5 +68,6 @@ class Kernel extends HttpKernel
         'master' => \App\Http\Middleware\MasterMiddleware::class,
         'kab' => \App\Http\Middleware\KabMiddleware::class,
         'holding.license' => \App\Http\Middleware\HoldingLicense::class,
+        'tenant.token' => \App\Http\Middleware\TenantToken::class,
     ];
 }

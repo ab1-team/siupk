@@ -159,7 +159,7 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h1 class="modal-title fs-5" id="ModalScanWALabel">
-                            Aktivasi Whatsapp Gateway
+                            Scan WhatsApp Gateway
                         </h1>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
@@ -170,14 +170,13 @@
                                     <div class="row">
                                         <div class="col-xl-5 col-lg-6 text-center">
                                             <img class="w-100 border-radius-lg shadow-lg mx-auto"
-                                                src="/assets/img/no_image.png" id="QrCode" alt="chair">
+                                                src="/assets/img/no_image.png" id="QrCode" alt="QR Code">
                                         </div>
                                         <div class="col-lg-5 mx-auto">
                                             <h3 class="mt-lg-0 mt-4">Scan kode QR</h3>
+                                            <p class="text-sm text-muted">Buka WhatsApp di HP &rarr; Perangkat Tertaut &rarr; Tautkan Perangkat.</p>
                                             <ul class="list-group list-group-flush rounded" id="ListConnection">
-                                                <li class="list-group-item">
-                                                    Membuat Kode QR
-                                                </li>
+                                                <li class="list-group-item">Menunggu QR Code...</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -186,7 +185,6 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        {{-- <button type="button" class="btn btn-warning btn-sm" id="WaLogout">Logout</button> --}}
                         <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal">Tutup</button>
                     </div>
                 </div>
@@ -203,80 +201,114 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 
     <script>
-        let ListContainer = $('#ListConnection')
         const API = '{{ $api }}'
-        const form = $('#FormWhatsapp')
-        const socket = io(API, {
-            transports: ['polling']
-        })
+        const API_KEY = '{{ $apiKey }}'
+        const TOKEN = '{{ $token }}'
+        const existingDeviceId = $('#waDeviceId').val() || null
+        const existingDeviceKey = $('#waDeviceKey').val() || null
+        const ListContainer = $('#ListConnection')
+        let deviceSocket = null
 
-        const pesan = $('#Pesan')
+        function setConnected() {
+            $('#ScanWA').addClass('d-none')
+            $('#HapusWa').removeClass('d-none')
+        }
 
-        var scan = 0
-        var connect = 0
+        function setDisconnected() {
+            $('#ScanWA').removeClass('d-none')
+            $('#HapusWa').addClass('d-none')
+        }
 
-        var socketId = 0;
-        socket.on('connected', (res) => {
-            console.log('Connected to the server. Socket ID:', res.id);
-            socketId = res.id
-        });
+        function initDeviceSocket(deviceId, deviceKey) {
+            if (deviceSocket) {
+                deviceSocket.disconnect()
+                deviceSocket = null
+            }
 
-        $('#HapusWaLi').addClass('d-none')
-        $('#ScanWALi').addClass('d-none')
-
-        $(document).ready(function() {
-            $('#ScanWALi').removeClass('d-none')
-
-            $.get(API + '/api/client/{{ $token }}', function(result) {
-                if (result.success && result.data) {
-                    $('#HapusWaLi').removeClass('d-none')
-                    $('#ScanWALi').addClass('d-none')
-                }
-
-                console.log(result);
-            }).fail(function() {
-                console.log('API WA Gateway tidak dapat dijangkau.');
+            deviceSocket = io(API, {
+                query: {
+                    device_id: deviceId,
+                    api_key: deviceKey,
+                },
+                transports: ['polling', 'websocket'],
             })
-        })
+
+            deviceSocket.on('connect', () => {
+                console.log('[WA] socket device terkoneksi')
+            })
+
+            deviceSocket.on('connect_error', (err) => {
+                console.log('[WA] socket error:', err.message)
+            })
+
+            deviceSocket.on('qr', (data) => {
+                if (data && (data.qr_image || data.url)) {
+                    $('#QrCode').attr('src', data.qr_image || data.url)
+                }
+            })
+
+            deviceSocket.on('ready', () => {
+                setConnected()
+                ListContainer.html(
+                    '<li class="list-group-item list-group-item-success fw-bold">WhatsApp Aktif</li>'
+                )
+                Toastr('success', 'WhatsApp Gateway berhasil terhubung.')
+                setTimeout(function() {
+                    $('#ModalScanWA').modal('hide')
+                }, 1500)
+            })
+
+            deviceSocket.on('status', (data) => {
+                if (data && data.status === 'disconnected') {
+                    setDisconnected()
+                }
+            })
+        }
 
         $(document).on('click', '#ScanWA', function(e) {
             e.preventDefault()
+            console.log('[WA] klik scan')
 
-            Swal.fire({
-                title: 'Aktivasi Whatsapp',
-                text: 'Scan Whatsapp aplikasi SIUPK.',
-                showCancelButton: true,
-                confirmButtonText: 'Lanjutkan',
-                cancelButtonText: 'Batal',
-                icon: 'error'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        type: 'POST',
-                        url: API + '/api/client',
-                        data: {
-                            nama: $('#nama_bumdesma').val(),
-                            token: '{{ $token }}',
-                            socketId
-                        },
-                        success: function(result) {
-                            if (result.success) {
-                                $('#ListConnection').html(
-                                    '<li class="list-group-item">Membuat Kode QR...</li>'
-                                )
-                                $('#ModalScanWA').modal('show')
-                            } else {
-                                Swal.fire('Error', "Whatsapp sudah terdaftar.", 'error')
+            $.ajax({
+                type: 'POST',
+                url: '/pengaturan/whatsapp/scan',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                },
+                success: function(result) {
+                    console.log('[WA] scan response:', result)
+                    if (result.success && result.device_id && result.device_key) {
+                        ListContainer.html(
+                            '<li class="list-group-item">Membuat Kode QR...</li>'
+                        )
+                        $('#QrCode').attr('src', '/assets/img/no_image.png')
+                        $('#ModalScanWA').modal('show')
+
+                        initDeviceSocket(result.device_id, result.device_key)
+
+                        $.post('/pengaturan/whatsapp/save_device', {
+                            _token: $('meta[name="csrf-token"]').attr('content'),
+                            device_id: result.device_id,
+                            device_key: result.device_key,
+                            status: 'connected',
+                        }, function(saveRes) {
+                            if (!saveRes.success) {
+                                Swal.fire('Error', saveRes.msg || 'Gagal menyimpan device.', 'error')
                             }
-                        },
-                        error: function() {
-                            Swal.fire('Server Tidak Dapat Dijangkau',
-                                'Pastikan server WA Gateway (' + API +
-                                ') sedang online dan dapat diakses dari server ini.',
-                                'error')
-                        }
-                    })
-                }
+                        }).fail(function() {
+                            Swal.fire('Error', 'Gagal menyimpan device ke server SIUPK.', 'error')
+                        })
+                    } else {
+                        Swal.fire('Error', result.msg || 'Response tidak valid.', 'error')
+                    }
+                },
+                error: function(xhr) {
+                    var msg = 'Gagal membuat device di gateway.'
+                    if (xhr.responseJSON && xhr.responseJSON.msg) {
+                        msg = xhr.responseJSON.msg
+                    }
+                    Swal.fire('Error', msg, 'error')
+                },
             })
         })
 
@@ -284,49 +316,37 @@
             e.preventDefault()
 
             Swal.fire({
-                title: 'Hapus Whatsapp',
-                text: 'Hapus koneksi whatsapp SIUPK.',
+                title: 'Putuskan Koneksi WhatsApp?',
+                text: 'Koneksi WhatsApp Gateway akan dihapus.',
                 showCancelButton: true,
-                confirmButtonText: 'Hapus',
+                confirmButtonText: 'Putuskan',
                 cancelButtonText: 'Batal',
-                icon: 'error'
+                icon: 'warning',
             }).then((result) => {
                 if (result.isConfirmed) {
-                    $.ajax({
-                        type: 'DELETE',
-                        url: API + '/api/client/{{ $token }}',
-                        success: function(result) {
-                            if (result.success) {
-                                Swal.fire('Whatsapp Dihapus',
-                                    "Scan ulang untuk bisa menggunakan layanan pesan pemberitahuan otomatis.",
-                                    'success')
-
-                                $('#ScanWALi').removeClass('d-none')
-                                $('#HapusWaLi').addClass('d-none')
+                    $.post('/pengaturan/whatsapp/delete_session', {
+                        _token: $('meta[name="csrf-token"]').attr('content'),
+                    }, function(res) {
+                        if (res.success) {
+                            if (deviceSocket) {
+                                deviceSocket.disconnect()
+                                deviceSocket = null
                             }
+                            setDisconnected()
+                            Toastr('success', res.msg || 'Koneksi WhatsApp dihapus.')
+                        } else {
+                            Swal.fire('Error', res.msg || 'Gagal memutuskan koneksi.', 'error')
                         }
+                    }).fail(function() {
+                        Swal.fire('Error', 'Gagal menghubungi server SIUPK.', 'error')
                     })
                 }
             })
         })
 
-        var scanQr = 0;
-        socket.on('QR', (result) => {
-            $('#QrCode').attr('src', result.url)
-
-            if (scanQr <= 0) {
-                var List = $('<li class="list-group-item fw-bold">Scan QR</li>')
-                ListContainer.append(List)
-            }
-
-            scanQr += 1;
-        })
-
-        socket.on('ClientConnect', (result) => {
-            $('#QrCode').attr('src', result.url)
-            var List = $('<li class="list-group-item list-group-item-success fw-bold">Whatsapp Aktif</li>')
-            ListContainer.append(List)
-        })
+        @if ($kec->wa_session && $kec->wa_session->isConnected())
+            initDeviceSocket('{{ $kec->wa_session->device_id }}', '{{ $kec->wa_session->device_key }}')
+        @endif
     </script>
 
     <script>

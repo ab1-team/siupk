@@ -24,14 +24,22 @@
                     @if ($pinj->target)
                         @php
                             $nomor = $pinj->kelompok->telpon;
-                            $desa = $pinj->kelompok->d->sebutan_desa->sebutan_desa;
+                            $desa = $pinj->kelompok->d->sebutan_desa->sebutan_desa ?? 'Desa';
                             $desa .= ' ' . $pinj->kelompok->d->nama_desa;
 
-                            $value = $pesan;
-                            $value = str_replace('{Nama Kelompok}', $pinj->kelompok->nama_kelompok, $value);
-                            $value = str_replace('{Nama Desa}', $desa, $value);
-                            $value = str_replace('{Angsuran Pokok}', number_format($pinj->target->wajib_pokok), $value);
-                            $value = str_replace('{Angsuran Jasa}', number_format($pinj->target->wajib_jasa), $value);
+                            $value = $template ?? '';
+                            $value = strtr($value, [
+                                '{Nama Kelompok}' => $pinj->kelompok->nama_kelompok,
+                                '{Nama Nasabah}' => $pinj->kelompok->nama_kelompok,
+                                '{Nama Desa}' => $desa,
+                                '{Angsuran Pokok}' => number_format($pinj->target->wajib_pokok),
+                                '{Angsuran Jasa}' => number_format($pinj->target->wajib_jasa),
+                                '{Tanggal Angsuran}' => $bulan_angsuran ?? '',
+                                '{Tanggal Jatuh Tempo}' => $tgl_tagihan ?? '',
+                                '{Tanggal Bayar}' => $tgl_bayar ?? '',
+                                '{User Login}' => $user_nama ?? '',
+                                '{Telpon}' => $user_hp ?? '',
+                            ]);
 
                             $tagihan_pokok = $pinj->target->wajib_pokok;
                             $tagihan_jasa = $pinj->target->wajib_jasa;
@@ -39,13 +47,22 @@
                                 $tagihan_pokok = $pinj->saldo->tunggakan_pokok;
                                 $tagihan_jasa = $pinj->saldo->tunggakan_jasa;
                             }
+
+                            $cleanNomor = preg_replace('/[^0-9]/', '', $nomor);
+                            $isValid = strlen($cleanNomor) >= 11 && (str_starts_with($cleanNomor, '08') || str_starts_with($cleanNomor, '628'));
                         @endphp
                         <tr>
                             <td>
                                 <div class="form-check text-center">
-                                    <input class="form-check-input" type="checkbox"
-                                        value="{{ $nomor }}||{{ $pinj->kelompok->nama_kelompok }}||{{ $value }}"
-                                        id="{{ $pinj->id }}" name="pinjaman[]" {!! strlen($nomor) >= 11 ? 'data-input="checked"' : 'disabled' !!}>
+                                    <input class="form-check-input wa-row" type="checkbox"
+                                        data-row='@json([
+                                            "id_pinkel" => $pinj->id,
+                                            "nama_kelompok" => $pinj->kelompok->nama_kelompok,
+                                            "desa" => $desa,
+                                            "number" => $nomor,
+                                        ])'
+                                        id="{{ $pinj->id }}" name="pinjaman[]"
+                                        {!! $isValid ? '' : 'disabled' !!}>
                                 </div>
                             </td>
                             <td>{{ $pinj->kelompok->nama_kelompok }} - {{ $pinj->id }}</td>
@@ -64,9 +81,9 @@
 <script>
     $(document).on('click', '#checked', function() {
         if ($(this)[0].checked == true) {
-            $('[data-input=checked]').prop('checked', true)
+            $('.wa-row:not(:disabled)').prop('checked', true)
         } else {
-            $('[data-input=checked]').prop('checked', false)
+            $('.wa-row').prop('checked', false)
         }
     })
 </script>

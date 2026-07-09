@@ -139,6 +139,7 @@ Route::get('/simpan_saldo', [DashboardController::class, 'simpanSaldo'])->middle
 Route::post('/dashboard/jatuh_tempo', [DashboardController::class, 'jatuhTempo'])->middleware('auth');
 Route::post('/dashboard/nunggak', [DashboardController::class, 'nunggak'])->middleware('auth');
 Route::post('/dashboard/tagihan', [DashboardController::class, 'tagihan'])->middleware('auth');
+Route::post('/dashboard/tagihan/kirim', [DashboardController::class, 'tagihan_kirim'])->middleware('auth');
 Route::get('/dashboard/pinjaman', [DashboardController::class, 'pinjaman'])->middleware('auth');
 Route::get('/dashboard/pinjamanI', [DashboardController::class, 'pinjamanI'])->middleware('auth');
 Route::get('/dashboard/pemanfaat', [DashboardController::class, 'pemanfaat'])->middleware('auth');
@@ -161,6 +162,10 @@ Route::put('/pengaturan/spk/{kec}', [SopController::class, 'spk'])->middleware('
 Route::put('/pengaturan/logo/{kec}', [SopController::class, 'logo'])->middleware('auth');
 Route::put('/pengaturan/calk/{kec}', [SopController::class, 'calk'])->middleware('auth');
 
+Route::post('/pengaturan/whatsapp/scan', [SopController::class, 'scan_whatsapp'])->middleware('auth');
+Route::post('/pengaturan/whatsapp/save_device', [SopController::class, 'save_whatsapp_session'])->middleware('auth');
+Route::post('/pengaturan/whatsapp/delete_session', [SopController::class, 'delete_whatsapp_session'])->middleware('auth');
+Route::get('/pengaturan/whatsapp/status', [SopController::class, 'whatsapp_status'])->middleware('auth');
 Route::post('/pengaturan/whatsapp/{token}', [SopController::class, 'whatsapp'])->middleware('auth');
 
 Route::get('/pengaturan/invoice', [SopController::class, 'invoice'])->middleware('auth');
