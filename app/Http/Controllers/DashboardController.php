@@ -103,8 +103,8 @@ class DashboardController extends Controller
         $data['jumlah_saldo'] = Saldo::where('kode_akun', 'NOT LIKE', $kec->kd_kec . '%')->count();
 
         $wa = $kec->wa_session;
-        $data['api'] = env('APP_API', 'http://localhost:3000');
-        $data['api_key'] = env('APP_API_KEY');
+        $data['api'] = config('wa_gateway.wa.base_url');
+        $data['api_key'] = config('wa_gateway.wa.master_key');
         $data['wa_device_id'] = $wa->device_id ?? null;
         $data['wa_device_key'] = $wa->device_key ?? null;
         $data['title'] = "Dashboard";

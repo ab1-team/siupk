@@ -299,7 +299,7 @@
             <script>
                 (function() {
                     const IS_SOP_WA = {{ $isSopWaPage ? 'true' : 'false' }};
-                    const waSocket = io('{{ env("APP_API", "http://localhost:3000") }}', {
+                    const                     waSocket = io('{{ config("wa_gateway.wa.base_url") }}', {
                         query: {
                             device_id: '{{ $waSessionForLayout->device_id }}',
                             api_key: '{{ $waSessionForLayout->device_key }}'

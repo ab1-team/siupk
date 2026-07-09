@@ -65,8 +65,8 @@ class TransaksiController extends Controller
             $pinkel = '0';
         }
 
-        $api = env('APP_API', 'http://localhost:3000');
-        $api_key = env('APP_API_KEY');
+        $api = config('wa_gateway.wa.base_url');
+        $api_key = config('wa_gateway.wa.master_key');
         $wa_device_id = $kec->wa_session->device_id ?? null;
         $wa_device_key = $kec->wa_session->device_key ?? null;
         return view('transaksi.jurnal_angsuran.index')->with(compact('title', 'pinkel', 'kec', 'penyetor', 'api', 'api_key', 'wa_device_id', 'wa_device_key'));
@@ -84,8 +84,8 @@ class TransaksiController extends Controller
             $pinkel = '0';
         }
 
-        $api = env('APP_API', 'http://localhost:3000');
-        $api_key = env('APP_API_KEY');
+        $api = config('wa_gateway.wa.base_url');
+        $api_key = config('wa_gateway.wa.master_key');
         $wa_device_id = $kec->wa_session->device_id ?? null;
         $wa_device_key = $kec->wa_session->device_key ?? null;
         return view('transaksi.jurnal_angsuran.individu.index')->with(compact('title', 'pinkel', 'kec', 'api', 'api_key', 'wa_device_id', 'wa_device_key'));
