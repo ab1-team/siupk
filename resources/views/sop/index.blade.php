@@ -231,6 +231,8 @@
                     api_key: deviceKey,
                 },
                 transports: ['polling', 'websocket'],
+                reconnection: false,
+                timeout: 5000,
             })
 
             deviceSocket.on('connect', () => {
@@ -278,6 +280,15 @@
                 success: function(result) {
                     console.log('[WA] scan response:', result)
                     if (result.success && result.device_id && result.device_key) {
+                        if (result.mock) {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Mode Lokal',
+                                text: result.msg || 'Gateway WhatsApp tidak tersedia di lokal. Device mock dibuat.',
+                            })
+                            return
+                        }
+
                         ListContainer.html(
                             '<li class="list-group-item">Membuat Kode QR...</li>'
                         )

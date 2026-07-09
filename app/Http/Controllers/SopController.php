@@ -67,6 +67,16 @@ class SopController extends Controller
         $result = $this->wa->createDevice($name);
 
         if (!$result['success']) {
+            if (app()->environment('local') || env('APP_API_KEY') === 'mock_master_key_dev_only') {
+                return response()->json([
+                    'success' => true,
+                    'device_id' => 'mock_' . bin2hex(random_bytes(8)),
+                    'device_key' => 'mock_' . bin2hex(random_bytes(16)),
+                    'mock' => true,
+                    'msg' => 'Mode lokal: gateway WA tidak tersedia. Device mock dibuat untuk testing.',
+                ]);
+            }
+
             return response()->json([
                 'success' => false,
                 'msg' => $result['error'] ?? 'Gagal membuat device di gateway.',
