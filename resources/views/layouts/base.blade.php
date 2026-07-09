@@ -550,6 +550,13 @@
             $('input#laporan').val('pelunasan')
             $('#FormLaporanSisipan').submit()
         })
+
+        $(document).on('hide.bs.modal', '.modal', function() {
+            var active = document.activeElement
+            if (active && this.contains(active)) {
+                active.blur()
+            }
+        })
     </script>
 
     <script>
