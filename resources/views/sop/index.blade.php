@@ -268,6 +268,8 @@
             })
         }
 
+        const IS_LOCAL_GATEWAY = API.indexOf('localhost') !== -1 || API.indexOf('127.0.0.1') !== -1
+
         $(document).on('click', '#ScanWA', function(e) {
             e.preventDefault()
 
@@ -302,23 +304,36 @@
                                 device_key: newKey,
                             }, function(saveRes) {
                                 if (!saveRes.success) {
-                                    Swal.fire('Error', saveRes.msg || 'Gagal menyimpan device.', 'error')
+                                    Swal.fire('Peringatan', saveRes.msg || 'Gagal menyimpan device.', 'warning')
                                 }
                             }).fail(function() {
-                                Swal.fire('Error', 'Gagal menyimpan device ke server SIUPK.', 'error')
+                                Swal.fire('Peringatan', 'Gagal menyimpan device ke server SIUPK.', 'warning')
                             })
                         } else {
-                            Swal.fire('Error', (result && result.msg) || 'Response tidak valid dari gateway.', 'error')
-                            $('#ModalScanWA').modal('hide')
+                            ListContainer.html(
+                                '<li class="list-group-item list-group-item-danger fw-bold">Response tidak valid dari gateway.</li>'
+                            )
                         }
                     },
                     error: function(xhr) {
+                        const status = xhr && xhr.status
                         let msg = 'Gagal membuat device di gateway.'
+
                         if (xhr.responseJSON && (xhr.responseJSON.msg || xhr.responseJSON.message)) {
                             msg = xhr.responseJSON.msg || xhr.responseJSON.message
+                        } else if (status === 0 || xhr.statusText === 'error') {
+                            msg = IS_LOCAL_GATEWAY
+                                ? 'WhatsApp Gateway tidak aktif di lingkungan lokal. Fitur ini hanya berjalan di server produksi.'
+                                : 'Tidak dapat terhubung ke WhatsApp Gateway. Periksa koneksi internet Anda.'
                         }
-                        Swal.fire('Error', msg, 'error')
-                        $('#ModalScanWA').modal('hide')
+
+                        ListContainer.html(
+                            '<li class="list-group-item list-group-item-danger fw-bold">' + msg + '</li>'
+                        )
+
+                        if (typeof MultiToast === 'function') {
+                            MultiToast('warning', msg)
+                        }
                     },
                 })
             })
