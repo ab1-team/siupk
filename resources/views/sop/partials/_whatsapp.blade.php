@@ -22,13 +22,28 @@
     </div>
 </form>
 
-<div class="d-flex justify-content-end">
-    <button type="button" id="HapusWa" class="btn btn-sm btn-danger mb-0 me-2">
-        Hapus Whatsapp
-    </button>
-    <button type="button" id="ScanWA" class="btn btn-sm btn-info mb-0 me-2">
-        Scan Whatsapp
-    </button>
+<div class="d-flex justify-content-end align-items-center">
+    <div class="dropdown me-2">
+        <button class="btn btn-sm btn-info mb-0 dropdown-toggle" type="button" id="DropdownScanWA"
+            data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="material-icons text-sm me-1">qr_code_scanner</i>
+            Scan WA Gateway
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="DropdownScanWA">
+            <li id="ScanWALi" class="d-none">
+                <button type="button" id="ScanWA" class="dropdown-item">
+                    <i class="material-icons text-sm me-1">qr_code_2</i>
+                    Scan QR Baru
+                </button>
+            </li>
+            <li id="HapusWaLi" class="d-none">
+                <button type="button" id="HapusWa" class="dropdown-item text-danger">
+                    <i class="material-icons text-sm me-1">link_off</i>
+                    Hapus Koneksi WA
+                </button>
+            </li>
+        </ul>
+    </div>
 
     <button type="button" id="SimpanWhatsapp" data-target="#FormScanWhatsapp"
         class="btn btn-sm btn-github mb-0 btn-simpan">

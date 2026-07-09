@@ -221,20 +221,21 @@
             socketId = res.id
         });
 
-        $('#HapusWa').hide()
-        $('#ScanWA').hide()
+        $('#HapusWaLi').addClass('d-none')
+        $('#ScanWALi').addClass('d-none')
+
         $(document).ready(function() {
+            $('#ScanWALi').removeClass('d-none')
+
             $.get(API + '/api/client/{{ $token }}', function(result) {
                 if (result.success && result.data) {
-                    $('#HapusWa').show()
-                    $('#ScanWA').hide()
-                } else {
-                    $('#ScanWA').show()
-                    $('#HapusWa').hide()
+                    $('#HapusWaLi').removeClass('d-none')
+                    $('#ScanWALi').addClass('d-none')
                 }
 
                 console.log(result);
-
+            }).fail(function() {
+                console.log('API WA Gateway tidak dapat dijangkau.');
             })
         })
 
@@ -260,10 +261,19 @@
                         },
                         success: function(result) {
                             if (result.success) {
+                                $('#ListConnection').html(
+                                    '<li class="list-group-item">Membuat Kode QR...</li>'
+                                )
                                 $('#ModalScanWA').modal('show')
                             } else {
                                 Swal.fire('Error', "Whatsapp sudah terdaftar.", 'error')
                             }
+                        },
+                        error: function() {
+                            Swal.fire('Server Tidak Dapat Dijangkau',
+                                'Pastikan server WA Gateway (' + API +
+                                ') sedang online dan dapat diakses dari server ini.',
+                                'error')
                         }
                     })
                 }
@@ -291,8 +301,8 @@
                                     "Scan ulang untuk bisa menggunakan layanan pesan pemberitahuan otomatis.",
                                     'success')
 
-                                $('#ScanWA').show()
-                                $('#HapusWa').hide()
+                                $('#ScanWALi').removeClass('d-none')
+                                $('#HapusWaLi').addClass('d-none')
                             }
                         }
                     })
