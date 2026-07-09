@@ -20,7 +20,6 @@ use App\Models\Saldo;
 use App\Models\Transaksi;
 use App\Models\User;
 use App\Models\Whatsapp;
-use App\Services\WaService;
 use App\Utils\Inventaris as UtilsInventaris;
 use App\Utils\Keuangan;
 use App\Utils\Tanggal;
@@ -66,8 +65,11 @@ class TransaksiController extends Controller
             $pinkel = '0';
         }
 
-        $api = env('APP_API', 'https://api-whatsapp.siupk.net');
-        return view('transaksi.jurnal_angsuran.index')->with(compact('title', 'pinkel', 'kec','penyetor', 'api'));
+        $api = env('APP_API', 'http://localhost:3000');
+        $api_key = env('APP_API_KEY');
+        $wa_device_id = $kec->wa_session->device_id ?? null;
+        $wa_device_key = $kec->wa_session->device_key ?? null;
+        return view('transaksi.jurnal_angsuran.index')->with(compact('title', 'pinkel', 'kec', 'penyetor', 'api', 'api_key', 'wa_device_id', 'wa_device_key'));
     }
 
     public function jurnalAngsuranIndividu()
@@ -82,8 +84,11 @@ class TransaksiController extends Controller
             $pinkel = '0';
         }
 
-        $api = env('APP_API', 'https://api-whatsapp.sidbm.net');
-        return view('transaksi.jurnal_angsuran.individu.index')->with(compact('title', 'pinkel', 'kec', 'api'));
+        $api = env('APP_API', 'http://localhost:3000');
+        $api_key = env('APP_API_KEY');
+        $wa_device_id = $kec->wa_session->device_id ?? null;
+        $wa_device_key = $kec->wa_session->device_key ?? null;
+        return view('transaksi.jurnal_angsuran.individu.index')->with(compact('title', 'pinkel', 'kec', 'api', 'api_key', 'wa_device_id', 'wa_device_key'));
     }
 
     public function ebudgeting()
@@ -1032,19 +1037,19 @@ class TransaksiController extends Controller
             $whatsapp = false;
             $pesan = '';
             $number = null;
-            $waDevice = null;
-            $waService = app(WaService::class);
 
-            if ($waService->isValidNumber($pinkel->kelompok->telpon) && $waService->isValidNumber(auth()->user()->hp)) {
+            $numberRaw = $pinkel->kelompok->telpon ?? '';
+            if (preg_match('/^(\+?62|0)(\d{8,15})$/', preg_replace('/[^0-9+]/', '', $numberRaw)) && !empty(auth()->user()->hp)) {
                 $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
                 $waDevice = Whatsapp::where('lokasi', Session::get('lokasi'))->first();
 
-                $template = $kec->getTemplate('angsuran');
+                $waTpl = is_array($kec->whatsapp) ? $kec->whatsapp : (json_decode($kec->whatsapp, true) ?: []);
+                $template = $waTpl['angsuran'] ?? null;
                 $nama_kelompok = $pinkel->kelompok->nama_kelompok;
                 $desa = $pinkel->kelompok->d->sebutan_desa->sebutan_desa . ' ' . $pinkel->kelompok->d->nama_desa;
 
                 if ($template) {
-                    $payload = $waService->buildPayload($template, [
+                    $pesan = strtr($template, [
                         '{Nama Kelompok}' => $nama_kelompok,
                         '{Nama Nasabah}' => $nama_kelompok,
                         '{Nama Desa}' => $desa,
@@ -1056,11 +1061,13 @@ class TransaksiController extends Controller
                         '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
                         '{Telpon}' => auth()->user()->hp,
                     ]);
-                    if ($payload) {
-                        $pesan = $payload['message'];
-                        $number = $waService->normalize($pinkel->kelompok->telpon);
-                        $whatsapp = $waDevice && $waDevice->isConnected() && $number ? true : false;
+                    $number = preg_replace('/[^0-9+]/', '', $numberRaw);
+                    if (str_starts_with($number, '0')) {
+                        $number = '+62' . substr($number, 1);
+                    } elseif (str_starts_with($number, '62') && !str_starts_with($number, '+')) {
+                        $number = '+' . $number;
                     }
+                    $whatsapp = $waDevice && $waDevice->device_id && $waDevice->device_key && $number ? true : false;
                 } else {
                     $pesan .= "Yth. " . $nama_kelompok . " " . $desa . ",\n\n";
                     $pesan .= "Terima kasih atas pembayaran angsuran anda.\n";
@@ -1070,8 +1077,13 @@ class TransaksiController extends Controller
                     $pesan .= "Pembayaran telah kami terima pada " . Tanggal::tglIndo($tgl_transaksi) . ".\n\n";
                     $pesan .= "Salam,\n" . auth()->user()->namadepan . " " . auth()->user()->namabelakang . "\n";
                     $pesan .= "Nomor Telepon: " . auth()->user()->hp;
-                    $number = $waService->normalize($pinkel->kelompok->telpon);
-                    $whatsapp = $waDevice && $waDevice->isConnected() && $number ? true : false;
+                    $number = preg_replace('/[^0-9+]/', '', $numberRaw);
+                    if (str_starts_with($number, '0')) {
+                        $number = '+62' . substr($number, 1);
+                    } elseif (str_starts_with($number, '62') && !str_starts_with($number, '+')) {
+                        $number = '+' . $number;
+                    }
+                    $whatsapp = $waDevice && $waDevice->device_id && $waDevice->device_key && $number ? true : false;
                 }
             }
 
@@ -1083,8 +1095,6 @@ class TransaksiController extends Controller
                 'tgl_transaksi' => $tgl_transaksi,
                 'whatsapp' => $whatsapp,
                 'number' => $number,
-                'device_id' => $waDevice?->device_id,
-                'device_key' => $waDevice?->device_key,
                 'nama_kelompok' => $pinkel->kelompok->nama_kelompok,
                 'pesan' => $pesan,
             ]);
@@ -1290,19 +1300,19 @@ class TransaksiController extends Controller
             $whatsapp = false;
             $pesan = '';
             $number = null;
-            $waDevice = null;
-            $waService = app(WaService::class);
 
-            if ($waService->isValidNumber($pinj_a->anggota->hp) && $waService->isValidNumber(auth()->user()->hp)) {
+            $numberRaw = $pinj_a->anggota->hp ?? '';
+            if (preg_match('/^(\+?62|0)(\d{8,15})$/', preg_replace('/[^0-9+]/', '', $numberRaw)) && !empty(auth()->user()->hp)) {
                 $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
                 $waDevice = Whatsapp::where('lokasi', Session::get('lokasi'))->first();
 
-                $template = $kec->getTemplate('angsuran');
+                $waTpl = is_array($kec->whatsapp) ? $kec->whatsapp : (json_decode($kec->whatsapp, true) ?: []);
+                $template = $waTpl['angsuran'] ?? null;
                 $nama_kelompok = $pinj_a->anggota->namadepan;
                 $desa = $pinj_a->anggota->d->sebutan_desa->sebutan_desa . ' ' . $pinj_a->anggota->d->nama_desa;
 
                 if ($template) {
-                    $payload = $waService->buildPayload($template, [
+                    $pesan = strtr($template, [
                         '{Nama Kelompok}' => $nama_kelompok,
                         '{Nama Nasabah}' => $nama_kelompok,
                         '{Nama Desa}' => $desa,
@@ -1314,11 +1324,13 @@ class TransaksiController extends Controller
                         '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
                         '{Telpon}' => auth()->user()->hp,
                     ]);
-                    if ($payload) {
-                        $pesan = $payload['message'];
-                        $number = $waService->normalize($pinj_a->anggota->hp);
-                        $whatsapp = $waDevice && $waDevice->isConnected() && $number ? true : false;
+                    $number = preg_replace('/[^0-9+]/', '', $numberRaw);
+                    if (str_starts_with($number, '0')) {
+                        $number = '+62' . substr($number, 1);
+                    } elseif (str_starts_with($number, '62') && !str_starts_with($number, '+')) {
+                        $number = '+' . $number;
                     }
+                    $whatsapp = $waDevice && $waDevice->device_id && $waDevice->device_key && $number ? true : false;
                 } else {
                     $pesan .= "Yth. " . $nama_kelompok . " " . $desa . ",\n\n";
                     $pesan .= "Terima kasih atas pembayaran angsuran anda.\n";
@@ -1328,8 +1340,13 @@ class TransaksiController extends Controller
                     $pesan .= "Pembayaran telah kami terima pada " . Tanggal::tglIndo($tgl_transaksi) . ".\n\n";
                     $pesan .= "Salam,\n" . auth()->user()->namadepan . " " . auth()->user()->namabelakang . "\n";
                     $pesan .= "Nomor Telepon: " . auth()->user()->hp;
-                    $number = $waService->normalize($pinj_a->anggota->hp);
-                    $whatsapp = $waDevice && $waDevice->isConnected() && $number ? true : false;
+                    $number = preg_replace('/[^0-9+]/', '', $numberRaw);
+                    if (str_starts_with($number, '0')) {
+                        $number = '+62' . substr($number, 1);
+                    } elseif (str_starts_with($number, '62') && !str_starts_with($number, '+')) {
+                        $number = '+' . $number;
+                    }
+                    $whatsapp = $waDevice && $waDevice->device_id && $waDevice->device_key && $number ? true : false;
                 }
             }
 
@@ -1341,8 +1358,6 @@ class TransaksiController extends Controller
                 'tgl_transaksi' => $tgl_transaksi,
                 'whatsapp' => $whatsapp,
                 'number' => $number,
-                'device_id' => $waDevice?->device_id,
-                'device_key' => $waDevice?->device_key,
                 'namadepan' => $pinj_a->anggota->namadepan,
                 'pesan' => $pesan,
             ]);

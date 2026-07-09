@@ -689,55 +689,6 @@
             }
         })
 
-        $(document).on('click', '#KirimPesan', function(e) {
-            e.preventDefault()
-
-            const deviceId = '{{ $kec->wa_session?->device_id ?? '' }}'
-            const deviceKey = '{{ $kec->wa_session?->device_key ?? '' }}'
-
-            if (!deviceId || !deviceKey) {
-                Swal.fire('Error', 'WhatsApp belum terhubung. Scan QR di Pengaturan terlebih dahulu.', 'error')
-                return
-            }
-
-            var rows = []
-            $('.wa-row:checked').each(function() {
-                try {
-                    rows.push(JSON.parse($(this).attr('data-row')))
-                } catch (err) {
-                    console.error('parse row error', err)
-                }
-            })
-
-            if (rows.length === 0) {
-                Swal.fire('Info', 'Pilih minimal satu kelompok.', 'info')
-                return
-            }
-
-            $.ajax({
-                type: 'POST',
-                url: '/dashboard/tagihan/kirim',
-                data: {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    tgl_tagihan: $('#tgl_tagihan').val(),
-                    tgl_pembayaran: $('#tgl_pembayaran').val(),
-                    rows: rows,
-                },
-                success: function(result) {
-                    if (result.success) {
-                        Swal.fire('Berhasil', result.msg || 'Pesan berhasil dikirim', 'success')
-                    } else {
-                        Swal.fire('Error', result.msg || 'Gagal mengirim', 'error')
-                    }
-                },
-                error: function(xhr) {
-                    var msg = 'Gagal menghubungi gateway.'
-                    if (xhr.responseJSON && xhr.responseJSON.msg) msg = xhr.responseJSON.msg
-                    Swal.fire('Error', msg, 'error')
-                }
-            })
-        })
-
         $(document).on('click', '#btnjatuhTempo', function(e) {
             e.preventDefault()
 
@@ -807,33 +758,22 @@
     @if (Session::get('invoice'))
         <script>
             function msgInvoice(number, msg, repeat = 0) {
+                const DEVICE_ID = '{{ $wa_device_id ?? '' }}'
+                const DEVICE_KEY = '{{ $wa_device_key ?? '' }}'
                 $.ajax({
-                    type: 'post',
-                    url: '{{ $api }}/send-text',
+                    type: 'POST',
+                    url: '{{ $api }}/api/send/text',
                     timeout: 0,
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    xhrFields: {
-                        withCredentials: true
-                    },
-                    data: JSON.stringify({
-                        token: "33081920220815",
-                        number: number,
-                        text: msg
-                    }),
+                    headers: { "Content-Type": "application/json", "x-api-key": DEVICE_KEY },
+                    data: JSON.stringify({ device_id: DEVICE_ID, to: number, message: msg }),
                     success: function(result) {
-                        if (!result.status) {
-                            setTimeout(function() {
-                                msgInvoice(number, msg, repeat + 1)
-                            }, 1000)
+                        if (!result.success) {
+                            setTimeout(function() { msgInvoice(number, msg, repeat + 1) }, 1000)
                         }
                     },
-                    error: function(result) {
+                    error: function() {
                         if (repeat < 1) {
-                            setTimeout(function() {
-                                msgInvoice(number, msg, repeat + 1)
-                            }, 1000)
+                            setTimeout(function() { msgInvoice(number, msg, repeat + 1) }, 1000)
                         }
                     }
                 })

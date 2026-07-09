@@ -4,13 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Whatsapp extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $table = 'whatsapp';
+    public $timestamps = false;
 
     protected $fillable = [
         'lokasi',
@@ -19,21 +19,11 @@ class Whatsapp extends Model
         'device_id',
         'device_key',
         'status',
-        'phone_number',
-        'last_seen',
-    ];
-
-    protected $casts = [
-        'last_seen' => 'datetime',
+        'deletedAt',
     ];
 
     public function kecamatan()
     {
         return $this->belongsTo(Kecamatan::class, 'lokasi', 'id');
-    }
-
-    public function isConnected(): bool
-    {
-        return $this->status === 'connected' && !empty($this->device_id) && !empty($this->device_key);
     }
 }

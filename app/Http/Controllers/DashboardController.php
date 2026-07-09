@@ -102,7 +102,11 @@ class DashboardController extends Controller
         $data['saldo'] = $this->_saldo($tgl);
         $data['jumlah_saldo'] = Saldo::where('kode_akun', 'NOT LIKE', $kec->kd_kec . '%')->count();
 
-        $data['api'] = env('APP_API', 'https://api-whatsapp.siupk.net');
+        $wa = $kec->wa_session;
+        $data['api'] = env('APP_API', 'http://localhost:3000');
+        $data['api_key'] = env('APP_API_KEY');
+        $data['wa_device_id'] = $wa->device_id ?? null;
+        $data['wa_device_key'] = $wa->device_key ?? null;
         $data['title'] = "Dashboard";
         $data['nama_upk'] = $kec->nama_kec;
         return view('dashboard.index')->with($data);
@@ -576,12 +580,11 @@ class DashboardController extends Controller
     public function tagihan(Request $request)
     {
         $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
-        $waDevice = \App\Models\Whatsapp::where('lokasi', Session::get('lokasi'))->first();
-        $waService = app(\App\Services\WaService::class);
 
         $tanggal = Tanggal::tglNasional($request->tgl_tagihan);
         $tgl_bayar = Tanggal::tglNasional($request->tgl_pembayaran);
-        $template = $kec->getTemplate('tagihan');
+        $waTpl = is_array($kec->whatsapp) ? $kec->whatsapp : (json_decode($kec->whatsapp, true) ?: []);
+        $template = $waTpl['tagihan'] ?? null;
 
         $pinjaman = PinjamanKelompok::where('status', 'A')->whereDay('tgl_cair', date('d', strtotime($tanggal)))->with([
             'target' => function ($query) use ($tanggal) {
@@ -604,8 +607,8 @@ class DashboardController extends Controller
         foreach ($pinjaman as $pin) {
             $kel = $pin->kelompok;
             if (!$kel) continue;
-            $number = $waService->normalize($kel->telpon);
-            if (!$number) continue;
+            $numberRaw = preg_replace('/[^0-9+]/', '', $kel->telpon ?? '');
+            if (!preg_match('/^(\+?62|0)(\d{8,15})$/', $numberRaw)) continue;
 
             $desa = $kel->d ? ($kel->d->sebutan_desa->sebutan_desa ?? 'Desa') . ' ' . $kel->d->nama_desa : '';
 
@@ -614,7 +617,7 @@ class DashboardController extends Controller
                 'nama_kelompok' => $kel->nama_kelompok,
                 'desa' => $desa,
                 'telpon' => $kel->telpon,
-                'number' => $number,
+                'number' => $numberRaw,
             ];
         }
 
@@ -630,75 +633,6 @@ class DashboardController extends Controller
                 'user_hp' => auth()->user()->hp,
                 'bulan_angsuran' => $bulan_angsuran,
             ])->render(),
-        ]);
-    }
-
-    public function tagihan_kirim(Request $request)
-    {
-        $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
-        $waDevice = \App\Models\Whatsapp::where('lokasi', Session::get('lokasi'))->first();
-        $waService = app(\App\Services\WaService::class);
-
-        if (!$waDevice || !$waDevice->isConnected()) {
-            return response()->json([
-                'success' => false,
-                'msg' => 'WhatsApp belum terhubung. Scan QR terlebih dahulu di Pengaturan.',
-            ], 400);
-        }
-
-        $template = $kec->getTemplate('tagihan');
-        if (!$template) {
-            return response()->json([
-                'success' => false,
-                'msg' => 'Template pesan tagihan belum diatur.',
-            ], 400);
-        }
-
-        $tanggal = Tanggal::tglNasional($request->tgl_tagihan);
-        $rows = $request->input('rows', []);
-        if (!is_array($rows) || empty($rows)) {
-            return response()->json([
-                'success' => false,
-                'msg' => 'Tidak ada nomor yang dipilih.',
-            ], 400);
-        }
-
-        $messages = [];
-        foreach ($rows as $r) {
-            $number = $waService->normalize($r['number'] ?? '');
-            if (!$number) continue;
-            $payload = $waService->buildPayload($template, [
-                '{Nama Kelompok}' => $r['nama_kelompok'] ?? '',
-                '{Nama Nasabah}' => $r['nama_kelompok'] ?? '',
-                '{Nama Desa}' => $r['desa'] ?? '',
-                '{Angsuran Pokok}' => '',
-                '{Angsuran Jasa}' => '',
-                '{Tanggal Angsuran}' => '',
-                '{Tanggal Jatuh Tempo}' => $request->tgl_tagihan,
-                '{Tanggal Bayar}' => $request->tgl_bayar,
-                '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
-                '{Telpon}' => auth()->user()->hp,
-            ]);
-            if ($payload) {
-                $messages[] = ['to' => $number, 'message' => $payload['message']];
-            }
-        }
-
-        if (empty($messages)) {
-            return response()->json([
-                'success' => false,
-                'msg' => 'Tidak ada nomor valid untuk dikirim.',
-            ], 400);
-        }
-
-        $result = $waService->sendBulk($waDevice, $messages, true);
-
-        return response()->json([
-            'success' => $result['success'],
-            'msg' => $result['success']
-                ? 'Tagihan berhasil dikirim (' . count($messages) . ' pesan).'
-                : ($result['error'] ?? 'Gagal kirim ke gateway.'),
-            'count' => count($messages),
         ]);
     }
 

@@ -47,10 +47,4 @@ class Kecamatan extends Model
     {
         return $this->hasOne(Whatsapp::class, 'lokasi', 'id');
     }
-
-    public function getTemplate(string $key): ?string
-    {
-        $wa = $this->whatsapp ?: [];
-        return $wa[$key] ?? null;
-    }
 }

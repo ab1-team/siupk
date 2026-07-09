@@ -510,35 +510,26 @@
         })
 
         function sendMsg(number, nama, msg, repeat = 0) {
-            const deviceId = '{{ $kec->wa_session?->device_id ?? '' }}'
-            const deviceKey = '{{ $kec->wa_session?->device_key ?? '' }}'
-
-            if (!deviceId || !deviceKey) {
-                MultiToast('error', 'WhatsApp belum terhubung untuk lokasi ini.')
-                return
-            }
+            const DEVICE_ID = '{{ $wa_device_id ?? "" }}'
+            const DEVICE_KEY = '{{ $wa_device_key ?? "" }}'
 
             $.ajax({
-                type: 'post',
+                type: 'POST',
                 url: '{{ $api }}/api/send/text',
-                headers: {
-                    'x-api-key': deviceKey,
-                    'Accept': 'application/json',
-                },
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    device_id: deviceId,
-                    to: number,
-                    message: msg,
-                }),
+                headers: { 'x-api-key': DEVICE_KEY },
+                data: { device_id: DEVICE_ID, to: number, message: msg },
                 success: function(result) {
-                    MultiToast('success', 'Pesan untuk kelompok ' + nama + ' berhasil dikirim')
+                    if (result.success) {
+                        MultiToast('success', 'Pesan untuk kelompok ' + nama + ' berhasil dikirim')
+                    } else if (repeat < 1) {
+                        setTimeout(function() { sendMsg(number, nama, msg, repeat + 1) }, 1000)
+                    } else {
+                        MultiToast('error', 'Pesan untuk kelompok ' + nama + ' gagal dikirim')
+                    }
                 },
-                error: function(result) {
+                error: function() {
                     if (repeat < 1) {
-                        setTimeout(function() {
-                            sendMsg(number, nama, msg, repeat + 1)
-                        }, 1000)
+                        setTimeout(function() { sendMsg(number, nama, msg, repeat + 1) }, 1000)
                     } else {
                         MultiToast('error', 'Pesan untuk kelompok ' + nama + ' gagal dikirim')
                     }

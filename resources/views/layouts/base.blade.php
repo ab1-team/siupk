@@ -291,19 +291,39 @@
     @if (session()->has('lokasi'))
         @php
             $waSessionForLayout = \App\Models\Whatsapp::where('lokasi', session('lokasi'))->first();
+            $currentPath = request()->path();
+            $isSopWaPage = in_array($currentPath, ['pengaturan/sop', 'pengaturan/whatsapp']);
         @endphp
-        @if ($waSessionForLayout && $waSessionForLayout->isConnected())
+        @if ($waSessionForLayout && $waSessionForLayout->device_id && $waSessionForLayout->device_key)
             <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
             <script>
                 (function() {
-                    const waSocket = io('{{ env("APP_API", "https://api-whatsapp.siupk.net") }}', {
+                    const IS_SOP_WA = {{ $isSopWaPage ? 'true' : 'false' }};
+                    const waSocket = io('{{ env("APP_API", "http://localhost:3000") }}', {
                         query: {
                             device_id: '{{ $waSessionForLayout->device_id }}',
                             api_key: '{{ $waSessionForLayout->device_key }}'
                         },
-                        transports: ['polling', 'websocket']
+                        transports: ['polling']
                     });
 
+                    waSocket.on('ready', function() {
+                        if (IS_SOP_WA && typeof MultiToast === 'function') {
+                            MultiToast('success', 'WhatsApp Gateway siap.');
+                        }
+                    });
+
+                    waSocket.on('status', function(data) {
+                        if (data && data.status === 'disconnected') {
+                            if (IS_SOP_WA && typeof MultiToast === 'function') {
+                                MultiToast('warning', 'WhatsApp Gateway terputus. Hubungkan ulang.');
+                            } else if (typeof Toastr === 'function') {
+                                Toastr('error', 'WhatsApp Terputus. Hubungkan ulang di Pengaturan.');
+                            }
+                        }
+                    });
+
+                    @if (!$isSopWaPage)
                     waSocket.on('message_sent', function(data) {
                         if (typeof MultiToast === 'function') {
                             MultiToast('success', 'WA Terkirim ke ' + (data.recipient || 'penerima'));
@@ -320,14 +340,7 @@
                             Toastr('error', 'WA Gagal ke ' + (data.recipient || 'penerima') + ': ' + reason);
                         }
                     });
-
-                    waSocket.on('status', function(data) {
-                        if (data && data.status === 'disconnected') {
-                            if (typeof Toastr === 'function') {
-                                Toastr('error', 'WhatsApp Terputus. Hubungkan ulang di Pengaturan.');
-                            }
-                        }
-                    });
+                    @endif
 
                     waSocket.on('connect_error', function(err) {
                         console.warn('[WA] socket error:', err.message);
