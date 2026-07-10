@@ -21,48 +21,56 @@ use Yajra\DataTables\DataTables;
 
 class SopController extends Controller
 {
-    public function index()
+public function index()
     {
-        $api = config('wa_gateway.wa.base_url');
-        $api_key = config('wa_gateway.wa.master_key');
+        $api = env('APP_API', 'http://localhost:3000');
+        $api_key = env('APP_API_KEY');
 
         $kec = Kecamatan::where('id', Session::get('lokasi'))->with('ttd', 'wa_session')->first();
+        $token = $kec->wa_session->token ?? $kec->token;
 
-        $token = $kec->token;
         $device_id = $kec->wa_session->device_id ?? null;
         $device_key = $kec->wa_session->device_key ?? null;
 
-        $title = "Personalisasi SOP";
-        return view('sop.index')->with(compact('title', 'kec', 'api', 'api_key', 'token', 'device_id', 'device_key'));
+        $title = 'Personalisasi SOP';
+
+        return view('sop.index')->with(compact('title', 'kec', 'api', 'token', 'api_key', 'device_id', 'device_key'));
     }
 
     public function save_whatsapp_session(Request $request)
     {
-        $lokasi = Session::get('lokasi');
-        $kec = Kecamatan::where('id', $lokasi)->first();
+        $id = Session::get('lokasi');
+        $device_id = $request->device_id;
+        $device_key = $request->device_key;
+
+        Log::info('Saving WA Session: ', [
+            'lokasi' => $id,
+            'device_id' => $device_id,
+            'device_key' => $device_key,
+        ]);
+
+        if (! $id) {
+            return response()->json(['success' => false, 'msg' => 'Lokasi session tidak ditemukan']);
+        }
 
         try {
+            $kec = Kecamatan::where('id', $id)->first();
             Whatsapp::updateOrCreate(
-                ['lokasi' => $lokasi],
+                ['lokasi' => $id],
                 [
-                    'nama' => $kec->nama_lembaga_sort ?? 'BUMDESMA',
-                    'token' => $kec->token ?? null,
-                    'device_id' => $request->input('device_id'),
-                    'device_key' => $request->input('device_key'),
+                    'nama' => $kec->nama_lembaga_sort ?? 'UPK',
+                    'token' => $kec->wa_session->token ?? $kec->token ?? '',
+                    'device_id' => $device_id,
+                    'device_key' => $device_key,
                     'status' => 'connected',
                 ]
             );
 
-            return response()->json([
-                'success' => true,
-                'msg' => 'Device WhatsApp berhasil disimpan.',
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('save_whatsapp_session: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'msg' => 'Gagal menyimpan device: ' . $e->getMessage(),
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            Log::error('DB Error saving WA session: '.$e->getMessage());
+
+            return response()->json(['success' => false, 'msg' => $e->getMessage()], 500);
         }
     }
 
@@ -70,11 +78,12 @@ class SopController extends Controller
     {
         $lokasi = $request->input('lokasi', Session::get('lokasi'));
 
-        if (!$lokasi) {
+        if ($lokasi === null || $lokasi === '') {
             return response()->json([
                 'success' => false,
-                'msg' => 'lokasi tidak ditemukan.',
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                'deleted' => 0,
+                'message' => 'Lokasi tidak ditemukan.',
+            ], 422);
         }
 
         $deleted = Whatsapp::where('lokasi', $lokasi)->delete();
@@ -82,7 +91,6 @@ class SopController extends Controller
         return response()->json([
             'success' => true,
             'deleted' => $deleted,
-            'msg' => 'Koneksi WhatsApp dihapus.',
         ]);
     }
 
@@ -229,7 +237,7 @@ class SopController extends Controller
             'msg' => 'Sistem Pinjaman Berhasil Diperbarui.',
         ]);
     }
-    
+
     public function simpanan(Request $request, Kecamatan $kec)
     {
         $data = $request->only([
@@ -588,8 +596,8 @@ class SopController extends Controller
         if ($validate->fails()) {
             return response()->json($validate->errors(), Response::HTTP_BAD_REQUEST);
         }
-        
-        
+
+
         $kecamatan = Kecamatan::where('id', $kec->id)->update([
             'kolek' => json_encode($kolekData)
         ]);
@@ -620,12 +628,13 @@ class SopController extends Controller
             return response()->json($validate->errors(), Response::HTTP_MOVED_PERMANENTLY);
         }
 
-        $existing = is_array($kec->whatsapp) ? $kec->whatsapp : (json_decode($kec->whatsapp, true) ?: []);
-        $existing['tagihan'] = $data['tagihan'];
-        $existing['angsuran'] = $data['angsuran'];
+        $wa = [
+            'tagihan' => $data['tagihan'],
+            'angsuran' => $data['angsuran'],
+        ];
 
         Kecamatan::where('id', $kec->id)->update([
-            'whatsapp' => $existing,
+            'whatsapp' => $wa,
         ]);
 
         return response()->json([

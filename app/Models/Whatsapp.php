@@ -19,7 +19,14 @@ class Whatsapp extends Model
         'device_id',
         'device_key',
         'status',
-        'deletedAt',
+        'phone_number',
+        'last_seen',
+        'deleted_at',
+    ];
+
+    protected $casts = [
+        'last_seen'  => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     public function kecamatan()

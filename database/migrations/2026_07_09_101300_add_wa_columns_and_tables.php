@@ -49,21 +49,10 @@ return new class extends Migration
                 }
             });
         }
-
-        if (!Schema::hasTable('api_endpoint')) {
-            Schema::create('api_endpoint', function (Blueprint $table) {
-                $table->id();
-                $table->string('whatsapp_api', 255)->nullable();
-                $table->string('description', 255)->nullable();
-                $table->boolean('is_active')->default(true);
-                $table->timestamps();
-            });
-        }
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('api_endpoint');
         Schema::dropIfExists('whatsapp');
 
         Schema::table('kecamatan', function (Blueprint $table) {

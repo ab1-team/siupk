@@ -15,12 +15,7 @@ class Kecamatan extends Model
     protected $fillable = [
         'web_kec',
         'web_alternatif',
-        'token',
         'whatsapp',
-    ];
-
-    protected $casts = [
-        'whatsapp' => 'array',
     ];
 
     public function kabupaten()

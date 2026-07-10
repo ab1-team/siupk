@@ -19,7 +19,6 @@ use App\Models\RencanaAngsuranI;
 use App\Models\Saldo;
 use App\Models\Transaksi;
 use App\Models\User;
-use App\Models\Whatsapp;
 use App\Utils\Inventaris as UtilsInventaris;
 use App\Utils\Keuangan;
 use App\Utils\Tanggal;
@@ -65,8 +64,8 @@ class TransaksiController extends Controller
             $pinkel = '0';
         }
 
-        $api = config('wa_gateway.wa.base_url');
-        $api_key = config('wa_gateway.wa.master_key');
+        $api = env('APP_API', 'http://localhost:3000');
+        $api_key = env('APP_API_KEY');
         $wa_device_id = $kec->wa_session->device_id ?? null;
         $wa_device_key = $kec->wa_session->device_key ?? null;
         return view('transaksi.jurnal_angsuran.index')->with(compact('title', 'pinkel', 'kec', 'penyetor', 'api', 'api_key', 'wa_device_id', 'wa_device_key'));
@@ -84,8 +83,8 @@ class TransaksiController extends Controller
             $pinkel = '0';
         }
 
-        $api = config('wa_gateway.wa.base_url');
-        $api_key = config('wa_gateway.wa.master_key');
+        $api = env('APP_API', 'http://localhost:3000');
+        $api_key = env('APP_API_KEY');
         $wa_device_id = $kec->wa_session->device_id ?? null;
         $wa_device_key = $kec->wa_session->device_key ?? null;
         return view('transaksi.jurnal_angsuran.individu.index')->with(compact('title', 'pinkel', 'kec', 'api', 'api_key', 'wa_device_id', 'wa_device_key'));
@@ -1036,55 +1035,22 @@ class TransaksiController extends Controller
 
             $whatsapp = false;
             $pesan = '';
-            $number = null;
-
-            $numberRaw = $pinkel->kelompok->telpon ?? '';
-            if (preg_match('/^(\+?62|0)(\d{8,15})$/', preg_replace('/[^0-9+]/', '', $numberRaw)) && !empty(auth()->user()->hp)) {
-                $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
-                $waDevice = Whatsapp::where('lokasi', Session::get('lokasi'))->first();
-
-                $waTpl = is_array($kec->whatsapp) ? $kec->whatsapp : (json_decode($kec->whatsapp, true) ?: []);
-                $template = $waTpl['angsuran'] ?? null;
+            if (strlen($pinkel->kelompok->telpon) >= 11 && strlen(auth()->user()->hp) >= 11 && (Keuangan::startWith($pinkel->kelompok->telpon, '08') || Keuangan::startWith($pinkel->kelompok->telpon, '628'))) {
                 $nama_kelompok = $pinkel->kelompok->nama_kelompok;
                 $desa = $pinkel->kelompok->d->sebutan_desa->sebutan_desa . ' ' . $pinkel->kelompok->d->nama_desa;
 
-                if ($template) {
-                    $pesan = strtr($template, [
-                        '{Nama Kelompok}' => $nama_kelompok,
-                        '{Nama Nasabah}' => $nama_kelompok,
-                        '{Nama Desa}' => $desa,
-                        '{Angsuran Pokok}' => 'Rp. ' . number_format($request->pokok),
-                        '{Angsuran Jasa}' => 'Rp. ' . number_format($request->jasa),
-                        '{Tanggal Angsuran}' => Tanggal::tglIndo($tgl_transaksi),
-                        '{Tanggal Jatuh Tempo}' => '',
-                        '{Tanggal Bayar}' => Tanggal::tglIndo($tgl_transaksi),
-                        '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
-                        '{Telpon}' => auth()->user()->hp,
-                    ]);
-                    $number = preg_replace('/[^0-9+]/', '', $numberRaw);
-                    if (str_starts_with($number, '0')) {
-                        $number = '+62' . substr($number, 1);
-                    } elseif (str_starts_with($number, '62') && !str_starts_with($number, '+')) {
-                        $number = '+' . $number;
-                    }
-                    $whatsapp = $waDevice && $waDevice->device_id && $waDevice->device_key && $number ? true : false;
-                } else {
-                    $pesan .= "Yth. " . $nama_kelompok . " " . $desa . ",\n\n";
-                    $pesan .= "Terima kasih atas pembayaran angsuran anda.\n";
-                    $pesan .= "Rincian Pembayaran:\n";
-                    $pesan .= "Pokok   : Rp. " . number_format($request->pokok) . "\n";
-                    $pesan .= "Jasa      : Rp. " . number_format($request->jasa) . "\n\n";
-                    $pesan .= "Pembayaran telah kami terima pada " . Tanggal::tglIndo($tgl_transaksi) . ".\n\n";
-                    $pesan .= "Salam,\n" . auth()->user()->namadepan . " " . auth()->user()->namabelakang . "\n";
-                    $pesan .= "Nomor Telepon: " . auth()->user()->hp;
-                    $number = preg_replace('/[^0-9+]/', '', $numberRaw);
-                    if (str_starts_with($number, '0')) {
-                        $number = '+62' . substr($number, 1);
-                    } elseif (str_starts_with($number, '62') && !str_starts_with($number, '+')) {
-                        $number = '+' . $number;
-                    }
-                    $whatsapp = $waDevice && $waDevice->device_id && $waDevice->device_key && $number ? true : false;
-                }
+                $whatsapp = true;
+                $pesan_wa = json_decode($kec->whatsapp, true);
+                $pesan = $pesan_wa['angsuran'];
+                $pesan = strtr($pesan, [
+                    '{Nama Kelompok}' => $nama_kelompok,
+                    '{Nama Desa}' => $desa,
+                    '{Angsuran Pokok}' => number_format($request->pokok),
+                    '{Angsuran Jasa}' => number_format($request->jasa),
+                    '{Tanggal Angsuran}' => Tanggal::tglIndo($tgl_transaksi),
+                    '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
+                    '{Telpon}' => auth()->user()->hp,
+                ]);
             }
 
             return response()->json([
@@ -1094,7 +1060,7 @@ class TransaksiController extends Controller
                 'idtp' => $idtp,
                 'tgl_transaksi' => $tgl_transaksi,
                 'whatsapp' => $whatsapp,
-                'number' => $number,
+                'number' => $pinkel->kelompok->telpon,
                 'nama_kelompok' => $pinkel->kelompok->nama_kelompok,
                 'pesan' => $pesan,
             ]);
@@ -1299,55 +1265,22 @@ class TransaksiController extends Controller
 
             $whatsapp = false;
             $pesan = '';
-            $number = null;
-
-            $numberRaw = $pinj_a->anggota->hp ?? '';
-            if (preg_match('/^(\+?62|0)(\d{8,15})$/', preg_replace('/[^0-9+]/', '', $numberRaw)) && !empty(auth()->user()->hp)) {
-                $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
-                $waDevice = Whatsapp::where('lokasi', Session::get('lokasi'))->first();
-
-                $waTpl = is_array($kec->whatsapp) ? $kec->whatsapp : (json_decode($kec->whatsapp, true) ?: []);
-                $template = $waTpl['angsuran'] ?? null;
+            if (strlen($pinj_a->anggota->hp) >= 11 && strlen(auth()->user()->hp) >= 11 && (Keuangan::startWith($pinj_a->anggota->hp, '08') || Keuangan::startWith($pinj_a->anggota->hp, '628'))) {
                 $nama_kelompok = $pinj_a->anggota->namadepan;
                 $desa = $pinj_a->anggota->d->sebutan_desa->sebutan_desa . ' ' . $pinj_a->anggota->d->nama_desa;
 
-                if ($template) {
-                    $pesan = strtr($template, [
-                        '{Nama Kelompok}' => $nama_kelompok,
-                        '{Nama Nasabah}' => $nama_kelompok,
-                        '{Nama Desa}' => $desa,
-                        '{Angsuran Pokok}' => 'Rp. ' . number_format($request->pokok),
-                        '{Angsuran Jasa}' => 'Rp. ' . number_format($request->jasa),
-                        '{Tanggal Angsuran}' => Tanggal::tglIndo($tgl_transaksi),
-                        '{Tanggal Jatuh Tempo}' => '',
-                        '{Tanggal Bayar}' => Tanggal::tglIndo($tgl_transaksi),
-                        '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
-                        '{Telpon}' => auth()->user()->hp,
-                    ]);
-                    $number = preg_replace('/[^0-9+]/', '', $numberRaw);
-                    if (str_starts_with($number, '0')) {
-                        $number = '+62' . substr($number, 1);
-                    } elseif (str_starts_with($number, '62') && !str_starts_with($number, '+')) {
-                        $number = '+' . $number;
-                    }
-                    $whatsapp = $waDevice && $waDevice->device_id && $waDevice->device_key && $number ? true : false;
-                } else {
-                    $pesan .= "Yth. " . $nama_kelompok . " " . $desa . ",\n\n";
-                    $pesan .= "Terima kasih atas pembayaran angsuran anda.\n";
-                    $pesan .= "Rincian Pembayaran:\n";
-                    $pesan .= "Pokok   : Rp. " . number_format($request->pokok) . "\n";
-                    $pesan .= "Jasa      : Rp. " . number_format($request->jasa) . "\n\n";
-                    $pesan .= "Pembayaran telah kami terima pada " . Tanggal::tglIndo($tgl_transaksi) . ".\n\n";
-                    $pesan .= "Salam,\n" . auth()->user()->namadepan . " " . auth()->user()->namabelakang . "\n";
-                    $pesan .= "Nomor Telepon: " . auth()->user()->hp;
-                    $number = preg_replace('/[^0-9+]/', '', $numberRaw);
-                    if (str_starts_with($number, '0')) {
-                        $number = '+62' . substr($number, 1);
-                    } elseif (str_starts_with($number, '62') && !str_starts_with($number, '+')) {
-                        $number = '+' . $number;
-                    }
-                    $whatsapp = $waDevice && $waDevice->device_id && $waDevice->device_key && $number ? true : false;
-                }
+                $whatsapp = true;
+                $pesan_wa = json_decode($kec->whatsapp, true);
+                $pesan = $pesan_wa['angsuran'];
+                $pesan = strtr($pesan, [
+                    '{Nama Kelompok}' => $nama_kelompok,
+                    '{Nama Desa}' => $desa,
+                    '{Angsuran Pokok}' => number_format($request->pokok),
+                    '{Angsuran Jasa}' => number_format($request->jasa),
+                    '{Tanggal Angsuran}' => Tanggal::tglIndo($tgl_transaksi),
+                    '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
+                    '{Telpon}' => auth()->user()->hp,
+                ]);
             }
 
             return response()->json([
@@ -1357,7 +1290,7 @@ class TransaksiController extends Controller
                 'idtp' => $idtp,
                 'tgl_transaksi' => $tgl_transaksi,
                 'whatsapp' => $whatsapp,
-                'number' => $number,
+                'number' => $pinj_a->anggota->hp,
                 'namadepan' => $pinj_a->anggota->namadepan,
                 'pesan' => $pesan,
             ]);

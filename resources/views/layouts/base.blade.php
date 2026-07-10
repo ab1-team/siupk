@@ -299,51 +299,77 @@
             <script>
                 (function() {
                     const IS_SOP_WA = {{ $isSopWaPage ? 'true' : 'false' }};
-                    const                     waSocket = io('{{ config("wa_gateway.wa.base_url") }}', {
+                    const                     waSocket = io('{{ env('APP_API', 'http://localhost:3000') }}', {
                         query: {
                             device_id: '{{ $waSessionForLayout->device_id }}',
                             api_key: '{{ $waSessionForLayout->device_key }}'
                         },
-                        transports: ['polling']
+                        transports: ['polling', 'websocket'],
+                        reconnection: true,
+                        reconnectionAttempts: Infinity,
+                        reconnectionDelay: 1000,
+                        reconnectionDelayMax: 5000,
+                        timeout: 20000,
+                    });
+
+                    const notify = (type, msg) => {
+                        if (typeof MultiToast === 'function') {
+                            MultiToast(type, msg);
+                        } else if (typeof Toastr === 'function') {
+                            Toastr(type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'success', msg);
+                        } else {
+                            console.log('[WA]', type, msg);
+                        }
+                    };
+
+                    waSocket.on('connect', function() {
+                        notify('success', 'Socket WhatsApp terhubung.');
+                    });
+
+                    waSocket.on('disconnect', function(reason) {
+                        notify('warning', 'Socket WhatsApp terputus: ' + reason + '. Mencoba ulang...');
+                    });
+
+                    waSocket.on('reconnect', function() {
+                        notify('success', 'Socket WhatsApp terhubung kembali.');
+                    });
+
+                    waSocket.on('reconnect_attempt', function(n) {
+                        console.log('[WA] reconnect attempt', n);
                     });
 
                     waSocket.on('ready', function() {
-                        if (IS_SOP_WA && typeof MultiToast === 'function') {
-                            MultiToast('success', 'WhatsApp Gateway siap.');
+                        if (IS_SOP_WA) {
+                            notify('success', 'WhatsApp Gateway siap.');
                         }
                     });
 
                     waSocket.on('status', function(data) {
                         if (data && data.status === 'disconnected') {
-                            if (IS_SOP_WA && typeof MultiToast === 'function') {
-                                MultiToast('warning', 'WhatsApp Gateway terputus. Hubungkan ulang.');
-                            } else if (typeof Toastr === 'function') {
-                                Toastr('error', 'WhatsApp Terputus. Hubungkan ulang di Pengaturan.');
+                            if (IS_SOP_WA) {
+                                notify('warning', 'WhatsApp Gateway terputus. Hubungkan ulang.');
+                            } else {
+                                notify('error', 'WhatsApp Terputus. Hubungkan ulang di Pengaturan.');
                             }
+                        } else if (data && data.status === 'connected') {
+                            notify('success', 'WhatsApp terhubung.');
                         }
                     });
 
                     @if (!$isSopWaPage)
                     waSocket.on('message_sent', function(data) {
-                        if (typeof MultiToast === 'function') {
-                            MultiToast('success', 'WA Terkirim ke ' + (data.recipient || 'penerima'));
-                        } else if (typeof Toastr === 'function') {
-                            Toastr('success', 'WA Terkirim ke ' + (data.recipient || 'penerima'));
-                        }
+                        notify('success', 'WA Terkirim ke ' + (data.recipient || 'penerima'));
                     });
 
                     waSocket.on('message_failed', function(data) {
                         const reason = (data && data.error) ? data.error : 'Tidak diketahui';
-                        if (typeof MultiToast === 'function') {
-                            MultiToast('error', 'WA Gagal ke ' + (data.recipient || 'penerima') + ': ' + reason);
-                        } else if (typeof Toastr === 'function') {
-                            Toastr('error', 'WA Gagal ke ' + (data.recipient || 'penerima') + ': ' + reason);
-                        }
+                        notify('error', 'WA Gagal ke ' + (data.recipient || 'penerima') + ': ' + reason);
                     });
                     @endif
 
                     waSocket.on('connect_error', function(err) {
                         console.warn('[WA] socket error:', err.message);
+                        notify('error', 'Socket WhatsApp error: ' + err.message);
                     });
                 })();
             </script>

@@ -753,6 +753,49 @@
             $('#FormLaporanDashboard #laporan').val(laporan);
             $('#FormLaporanDashboard #sub_laporan').val(subLaporan);
         }
+
+        $(document).on('click', '#KirimPesan', function(e) {
+            e.preventDefault()
+
+            var messages = []
+            $('[data-input=checked]:checked').each(function(i) {
+                var pesan = this.value
+                var number = pesan.split('||')[0]
+                var msg = pesan.split('||')[2]
+
+                if (!number.startsWith('08') && !number.startsWith('628')) {
+                    number = '0' + number
+                }
+
+                messages.push({
+                    number: number,
+                    message: msg
+                })
+            })
+
+            if (messages.length == 0) return
+
+            const DEVICE_ID = '{{ $wa_device_id ?? "" }}'
+            const DEVICE_KEY = '{{ $wa_device_key ?? $api_key ?? "" }}'
+
+            $.ajax({
+                type: 'POST',
+                url: '{{ $api }}/api/send/personalized',
+                headers: { 'x-api-key': DEVICE_KEY },
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    device_id: DEVICE_ID,
+                    messages: messages.map(function(m) {
+                        return { to: m.number, message: m.message }
+                    })
+                }),
+                success: function(result) {
+                    if (result.success) {
+                        Swal.fire('Berhasil', 'Pesan Berhasil Masuk Antrean', 'success')
+                    }
+                }
+            })
+        })
     </script>
 
     @if (Session::get('invoice'))

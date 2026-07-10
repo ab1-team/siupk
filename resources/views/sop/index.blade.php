@@ -200,7 +200,7 @@
         </div>
     </div>
 
-    <form action="/pengaturan/whatsapp/{{ $token }}" method="post" id="FormWhatsapp">
+    <form action="/pengaturan/whatsapp/{{ $kec->id }}" method="post" id="FormWhatsapp">
         @csrf
     </form>
 @endsection
@@ -209,133 +209,174 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 
     <script>
+        let ListContainer = $('#ListConnection')
         const API = '{{ $api }}'
         const MASTER_KEY = '{{ $api_key }}'
-        const SAVED_ID = '{{ $device_id ?? '' }}'
-        const SAVED_KEY = '{{ $device_key ?? '' }}'
-        const KODE_KEC = '{{ $kec->nama_lembaga_sort ?? $kec->nama_kec ?? "BUMDESMA" }}'
+        const SAVED_ID = '{{ $device_id }}'
+        const SAVED_KEY = '{{ $device_key }}'
+
         const CURRENT_ID = SAVED_ID || '{{ $token }}'
-        const ListContainer = $('#ListConnection')
-        let deviceSocket = null
+        const CURRENT_KEY = SAVED_KEY || MASTER_KEY
 
-        function initDeviceSocket(deviceId, deviceKey) {
-            if (deviceSocket) {
-                deviceSocket.disconnect()
-                deviceSocket = null
-            }
+        const LOKASI_ID = '{{ $kec->id }}'
+        const KODE_KEC = '{{ $kec->kd_kec }}'
 
-            deviceSocket = io(API, {
-                query: {
-                    device_id: deviceId,
-                    api_key: deviceKey,
+        var socket;
+        var socketId = 0;
+
+        function saveLocalSession(id, key) {
+            $.ajax({
+                type: 'POST',
+                url: '/pengaturan/whatsapp/save_device',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    device_id: id,
+                    device_key: key
                 },
-                transports: ['polling'],
-                reconnection: false,
-                timeout: 5000,
-            })
-
-            deviceSocket.on('connect', () => {
-                console.log('[WA] socket device terkoneksi')
-            })
-
-            deviceSocket.on('connect_error', (err) => {
-                console.log('[WA] socket error:', err.message)
-            })
-
-            deviceSocket.on('qr', (data) => {
-                if (data && data.qr_image) {
-                    $('#QrCode').attr('src', data.qr_image)
-                }
-            })
-
-            deviceSocket.on('ready', () => {
-                ListContainer.html(
-                    '<li class="list-group-item list-group-item-success fw-bold">WhatsApp Aktif</li>'
-                )
-                MultiToast('success', 'WhatsApp Gateway berhasil terhubung.')
-                setTimeout(function() {
-                    $('#ModalScanWA').modal('hide')
-                }, 1500)
-            })
-
-            deviceSocket.on('status', (data) => {
-                if (data && data.status === 'disconnected') {
-                    ListContainer.html(
-                        '<li class="list-group-item list-group-item-danger fw-bold">WhatsApp Terputus</li>'
-                    )
-                    MultiToast('warning', 'WhatsApp Gateway terputus.')
+                success: function(res) {
+                    console.log('Session saved successfully to DB:', res);
+                },
+                error: function(xhr) {
+                    console.error('AJAX error saving to DB:', xhr.status, xhr.responseText);
                 }
             })
         }
 
-        const IS_LOCAL_GATEWAY = API.indexOf('localhost') !== -1 || API.indexOf('127.0.0.1') !== -1
+        function initSocket(id, key) {
+            if (socket) {
+                socket.disconnect();
+            }
+
+            socket = io(API, {
+                query: {
+                    device_id: id,
+                    api_key: key
+                },
+                transports: ['polling']
+            });
+
+            socket.on('connected', (res) => {
+                console.log('Connected to the server. Socket ID:', res.id);
+                socketId = res.id
+            });
+
+            socket.on('ready', (result) => {
+                $('#QrCode').attr('src', '/assets/img/no_image.png')
+                var List = $('<li class="list-group-item list-group-item-success fw-bold">Whatsapp Aktif (' +
+                    result.phone_number + ')</li>')
+                ListContainer.append(List)
+
+                $('#HapusWa').show()
+                $('#ScanWA').hide()
+
+                if (!SAVED_ID) {
+                    saveLocalSession(result.device_id, MASTER_KEY)
+                }
+
+                if ($('#ModalScanWA').hasClass('show')) {
+                    Toastr('success', 'Whatsapp Aktif (' + result.phone_number + ')')
+                    setTimeout(() => {
+                        $('#ModalScanWA').modal('hide')
+                    }, 1000)
+                }
+            })
+
+            socket.on('qr', (result) => {
+                console.log('QR Code Refreshed');
+                $('#QrCode').attr('src', result.qr_image)
+            })
+
+            socket.on('status', (result) => {
+                console.log('WA status:', result.status)
+            })
+
+            socket.on('disconnect', () => {
+                console.log('Socket disconnected');
+            })
+        }
+
+        initSocket(CURRENT_ID, CURRENT_KEY);
+
+        $(document).ready(function() {
+            $.ajax({
+                type: 'GET',
+                url: API + '/api/devices/' + CURRENT_ID,
+                headers: {
+                    'x-api-key': MASTER_KEY
+                },
+                success: function(result) {
+                    console.log('Gateway Device Info:', result);
+                    if (result.success && result.device && (result.device.status === 'connected' || result.device.phone_number)) {
+                        $('#HapusWa').show()
+                        $('#ScanWA').hide()
+
+                        if (!SAVED_ID) {
+                            saveLocalSession(result.device.id, MASTER_KEY)
+                        }
+                    } else {
+                        $('#ScanWA').show()
+                        $('#HapusWa').hide()
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Failed to get gateway status:', status, error);
+                    $('#ScanWA').show()
+                    $('#HapusWa').hide()
+                }
+            })
+        })
 
         $(document).on('click', '#ScanWA', function(e) {
             e.preventDefault()
 
-            Swal.fire({
-                title: 'Scan WhatsApp Gateway?',
-                text: 'Buat device baru dan tampilkan QR code untuk dipindai.',
-                showCancelButton: true,
-                confirmButtonText: 'Scan',
-                cancelButtonText: 'Batal',
-                icon: 'question',
-            }).then((r) => {
-                if (!r.isConfirmed) return
-
-                ListContainer.html('<li class="list-group-item">Membuat device...</li>')
-                $('#QrCode').attr('src', '/assets/img/no_image.png')
+            if (SAVED_ID) {
                 $('#ModalScanWA').modal('show')
+                return
+            }
 
-                $.ajax({
-                    type: 'POST',
-                    url: API + '/api/devices',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': MASTER_KEY },
-                    data: JSON.stringify({ device_id: CURRENT_ID, name: 'siupk-' + KODE_KEC }),
-                    success: function(result) {
-                        if (result && (result.device_id || result.id)) {
-                            const newId = result.device_id || result.id
-                            const newKey = result.device_key || result.api_key || result.key || ''
-                            initDeviceSocket(newId, newKey || newId)
-
-                            $.post('/pengaturan/whatsapp/save_device', {
-                                _token: $('meta[name="csrf-token"]').attr('content'),
-                                device_id: newId,
-                                device_key: newKey,
-                            }, function(saveRes) {
-                                if (!saveRes.success) {
-                                    Swal.fire('Peringatan', saveRes.msg || 'Gagal menyimpan device.', 'warning')
-                                }
-                            }).fail(function() {
-                                Swal.fire('Peringatan', 'Gagal menyimpan device ke server SIUPK.', 'warning')
-                            })
-                        } else {
-                            ListContainer.html(
-                                '<li class="list-group-item list-group-item-danger fw-bold">Response tidak valid dari gateway.</li>'
-                            )
+            Swal.fire({
+                title: 'Aktivasi Whatsapp',
+                text: 'Scan Whatsapp aplikasi SIUPK.',
+                showCancelButton: true,
+                confirmButtonText: 'Lanjutkan',
+                cancelButtonText: 'Batal',
+                icon: 'info'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        type: 'POST',
+                        url: API + '/api/devices',
+                        headers: {
+                            'x-api-key': MASTER_KEY
+                        },
+                        data: {
+                            name: LOKASI_ID + '-' + KODE_KEC.replace(/\./g, '-')
+                        },
+                        success: function(result) {
+                            if (result.success) {
+                                $.post('/pengaturan/whatsapp/save_device', {
+                                    _token: '{{ csrf_token() }}',
+                                    device_id: result.device.id,
+                                    device_key: result.device.api_key
+                                }, function(res) {
+                                    if (res.success) {
+                                        initSocket(result.device.id, result.device
+                                            .api_key)
+                                        $('#ModalScanWA').modal('show')
+                                    } else {
+                                        Swal.fire('Error', res.msg || 'Gagal menyimpan device ke database.', 'error')
+                                    }
+                                })
+                            } else {
+                                var msg = result.message || result.msg || 'Gagal mendaftarkan device ke gateway.'
+                                Swal.fire('Error', msg, 'error')
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire('Error', 'Tidak dapat menghubungi WhatsApp gateway. Periksa APP_API & APP_API_KEY di file .env.', 'error')
                         }
-                    },
-                    error: function(xhr) {
-                        const status = xhr && xhr.status
-                        let msg = 'Gagal membuat device di gateway.'
-
-                        if (xhr.responseJSON && (xhr.responseJSON.msg || xhr.responseJSON.message)) {
-                            msg = xhr.responseJSON.msg || xhr.responseJSON.message
-                        } else if (status === 0 || xhr.statusText === 'error') {
-                            msg = IS_LOCAL_GATEWAY
-                                ? 'WhatsApp Gateway tidak aktif di lingkungan lokal. Fitur ini hanya berjalan di server produksi.'
-                                : 'Tidak dapat terhubung ke WhatsApp Gateway. Periksa koneksi internet Anda.'
-                        }
-
-                        ListContainer.html(
-                            '<li class="list-group-item list-group-item-danger fw-bold">' + msg + '</li>'
-                        )
-
-                        if (typeof MultiToast === 'function') {
-                            MultiToast('warning', msg)
-                        }
-                    },
-                })
+                    })
+                }
             })
         })
 
@@ -343,67 +384,40 @@
             e.preventDefault()
 
             Swal.fire({
-                title: 'Putuskan Koneksi WhatsApp?',
-                text: 'Koneksi WhatsApp Gateway akan dihapus.',
+                title: 'Hapus Whatsapp',
+                text: 'Hapus koneksi whatsapp SIUPK.',
                 showCancelButton: true,
-                confirmButtonText: 'Putuskan',
+                confirmButtonText: 'Hapus',
                 cancelButtonText: 'Batal',
-                icon: 'warning',
+                icon: 'error'
             }).then((result) => {
-                if (!result.isConfirmed) return
-
-                const doLogout = function() {
-                    $.post('/pengaturan/whatsapp/delete_session', {
-                        _token: $('meta[name="csrf-token"]').attr('content'),
-                    }, function(res) {
-                        if (deviceSocket) {
-                            deviceSocket.disconnect()
-                            deviceSocket = null
-                        }
-                        MultiToast('success', res.msg || 'Koneksi WhatsApp dihapus.')
-                        setTimeout(() => location.reload(), 800)
-                    }).fail(function() {
-                        Swal.fire('Error', 'Gagal menghubungi server SIUPK.', 'error')
-                    })
-                }
-
-                if (SAVED_ID) {
+                if (result.isConfirmed) {
                     $.ajax({
                         type: 'POST',
                         url: API + '/api/devices/' + SAVED_ID + '/logout',
-                        headers: { 'x-api-key': SAVED_KEY || MASTER_KEY },
-                        complete: doLogout,
+                        headers: {
+                            'x-api-key': MASTER_KEY
+                        },
+                        success: function(result) {
+                            $.post('/pengaturan/whatsapp/delete_session', {
+                                _token: '{{ csrf_token() }}',
+                                lokasi: LOKASI_ID
+                            }, function(res) {
+                                window.location.reload()
+                            })
+                        },
+                        error: function() {
+                            $.post('/pengaturan/whatsapp/delete_session', {
+                                _token: '{{ csrf_token() }}',
+                                lokasi: LOKASI_ID
+                            }, function(res) {
+                                window.location.reload()
+                            })
+                        }
                     })
-                } else {
-                    doLogout()
                 }
             })
         })
-
-        if (SAVED_ID) {
-            $.ajax({
-                type: 'GET',
-                url: API + '/api/devices/' + SAVED_ID,
-                headers: { 'x-api-key': SAVED_KEY || MASTER_KEY },
-                success: function(result) {
-                    if (result && result.connected) {
-                        initDeviceSocket(SAVED_ID, SAVED_KEY)
-                        ListContainer.html(
-                            '<li class="list-group-item list-group-item-success fw-bold">WhatsApp Aktif</li>'
-                        )
-                    } else {
-                        ListContainer.html(
-                            '<li class="list-group-item list-group-item-warning fw-bold">WhatsApp Belum Terhubung</li>'
-                        )
-                    }
-                },
-                error: function() {
-                    ListContainer.html(
-                        '<li class="list-group-item list-group-item-warning fw-bold">Status device tidak diketahui</li>'
-                    )
-                },
-            })
-        }
     </script>
 
     <script>

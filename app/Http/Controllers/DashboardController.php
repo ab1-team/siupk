@@ -103,8 +103,8 @@ class DashboardController extends Controller
         $data['jumlah_saldo'] = Saldo::where('kode_akun', 'NOT LIKE', $kec->kd_kec . '%')->count();
 
         $wa = $kec->wa_session;
-        $data['api'] = config('wa_gateway.wa.base_url');
-        $data['api_key'] = config('wa_gateway.wa.master_key');
+        $data['api'] = env('APP_API', 'http://localhost:3000');
+        $data['api_key'] = env('APP_API_KEY');
         $data['wa_device_id'] = $wa->device_id ?? null;
         $data['wa_device_key'] = $wa->device_key ?? null;
         $data['title'] = "Dashboard";
@@ -580,11 +580,11 @@ class DashboardController extends Controller
     public function tagihan(Request $request)
     {
         $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
+        $pesan_wa = json_decode($kec->whatsapp, true);
 
         $tanggal = Tanggal::tglNasional($request->tgl_tagihan);
         $tgl_bayar = Tanggal::tglNasional($request->tgl_pembayaran);
-        $waTpl = is_array($kec->whatsapp) ? $kec->whatsapp : (json_decode($kec->whatsapp, true) ?: []);
-        $template = $waTpl['tagihan'] ?? null;
+        $pesan = $pesan_wa['tagihan'];
 
         $pinjaman = PinjamanKelompok::where('status', 'A')->whereDay('tgl_cair', date('d', strtotime($tanggal)))->with([
             'target' => function ($query) use ($tanggal) {
@@ -623,16 +623,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'tagihan' => view('dashboard.partials.tagihan')->with([
-                'pinjaman' => $pinjaman,
-                'template' => $template,
-                'rows' => $rows,
-                'tgl_tagihan' => $request->tgl_tagihan,
-                'tgl_bayar' => $request->tgl_bayar,
-                'user_nama' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
-                'user_hp' => auth()->user()->hp,
-                'bulan_angsuran' => $bulan_angsuran,
-            ])->render(),
+            'tagihan' => view('dashboard.partials.tagihan')->with(compact('pinjaman', 'pesan'))->render(),
         ]);
     }
 
