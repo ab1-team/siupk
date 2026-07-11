@@ -373,7 +373,10 @@
                             }
                         },
                         error: function(xhr) {
-                            Swal.fire('Error', 'Tidak dapat menghubungi WhatsApp gateway. Periksa APP_API & APP_API_KEY di file .env.', 'error')
+                            var body = xhr && xhr.responseText ? xhr.responseText : '';
+                            var msg = 'Tidak dapat menghubungi WhatsApp gateway (' + xhr.status + ' ' + xhr.statusText + ').';
+                            if (body) msg += '\n\n' + body.substring(0, 300);
+                            Swal.fire('Error Gateway', msg, 'error')
                         }
                     })
                 }

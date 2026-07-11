@@ -23,7 +23,7 @@ class SopController extends Controller
 {
 public function index()
     {
-        $api = config('services.wagateway.url');
+        $api = rtrim(config('services.wagateway.url'), '/');
         $api_key = config('services.wagateway.api_key');
 
         $kec = Kecamatan::where('id', Session::get('lokasi'))->with('ttd', 'wa_session')->first();
