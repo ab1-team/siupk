@@ -23,8 +23,8 @@ class SopController extends Controller
 {
 public function index()
     {
-        $api = env('APP_API', 'http://localhost:3000');
-        $api_key = env('APP_API_KEY');
+        $api = config('services.wagateway.url');
+        $api_key = config('services.wagateway.api_key');
 
         $kec = Kecamatan::where('id', Session::get('lokasi'))->with('ttd', 'wa_session')->first();
         $token = $kec->wa_session->token ?? $kec->token;
