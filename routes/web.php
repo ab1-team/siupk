@@ -288,7 +288,7 @@ Route::get('/transaksi/form_angsuran_individu/{id_pinkel}', [TransaksiController
 
 Route::get('/transaksi/angsuran/target/{id_pinkel}', [TransaksiController::class, 'targetAngsuran'])->middleware('auth');
 Route::get('/transaksi/angsuran_individu/target/{id_pinkel}', [TransaksiController::class, 'targetAngsuranIndividu'])->middleware('auth');
-Route::post('/transaksi/angsuran_individu', [TransaksiController::class, 'angsuranIndividu']);
+Route::post('/transaksi/angsuran_individu', [TransaksiController::class, 'angsuranIndividu'])->middleware('auth');
 
 Route::get('/transaksi/data/{idt}', [TransaksiController::class, 'data'])->middleware('auth');
 Route::get('/transaksi/tutup_buku/saldo_awal/{tahun}', [TransaksiController::class, 'saldoAwal'])->middleware('auth');

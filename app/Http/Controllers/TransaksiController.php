@@ -1035,22 +1035,29 @@ class TransaksiController extends Controller
 
             $whatsapp = false;
             $pesan = '';
-            if (strlen($pinkel->kelompok->telpon) >= 11 && strlen(auth()->user()->hp) >= 11 && (Keuangan::startWith($pinkel->kelompok->telpon, '08') || Keuangan::startWith($pinkel->kelompok->telpon, '628'))) {
-                $nama_kelompok = $pinkel->kelompok->nama_kelompok;
-                $desa = $pinkel->kelompok->d->sebutan_desa->sebutan_desa . ' ' . $pinkel->kelompok->d->nama_desa;
+            try {
+                if (strlen($pinkel->kelompok->telpon) >= 11 && strlen(auth()->user()->hp) >= 11 && (Keuangan::startWith($pinkel->kelompok->telpon, '08') || Keuangan::startWith($pinkel->kelompok->telpon, '628'))) {
+                    $nama_kelompok = $pinkel->kelompok->nama_kelompok;
+                    $desa = $pinkel->kelompok->d->sebutan_desa->sebutan_desa . ' ' . $pinkel->kelompok->d->nama_desa;
 
-                $whatsapp = true;
-                $pesan_wa = json_decode($kec->whatsapp, true);
-                $pesan = $pesan_wa['angsuran'];
-                $pesan = strtr($pesan, [
-                    '{Nama Kelompok}' => $nama_kelompok,
-                    '{Nama Desa}' => $desa,
-                    '{Angsuran Pokok}' => number_format($request->pokok),
-                    '{Angsuran Jasa}' => number_format($request->jasa),
-                    '{Tanggal Angsuran}' => Tanggal::tglIndo($tgl_transaksi),
-                    '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
-                    '{Telpon}' => auth()->user()->hp,
-                ]);
+                    $whatsapp = true;
+                    $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
+                    $pesan_wa = json_decode($kec->whatsapp ?? '{}', true) ?: [];
+                    $pesan = $pesan_wa['angsuran'] ?? 'Terima kasih, angsuran Anda telah kami catat.';
+                    $pesan = strtr($pesan, [
+                        '{Nama Kelompok}' => $nama_kelompok,
+                        '{Nama Desa}' => $desa,
+                        '{Angsuran Pokok}' => number_format($request->pokok),
+                        '{Angsuran Jasa}' => number_format($request->jasa),
+                        '{Tanggal Angsuran}' => Tanggal::tglIndo($tgl_transaksi),
+                        '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
+                        '{Telpon}' => auth()->user()->hp,
+                    ]);
+                }
+            } catch (\Exception $wa) {
+                \Log::warning('WA angsuran kelompok gagal dirangkai: ' . $wa->getMessage());
+                $whatsapp = false;
+                $pesan = '';
             }
 
             return response()->json([
@@ -1065,8 +1072,12 @@ class TransaksiController extends Controller
                 'pesan' => $pesan,
             ]);
         } catch (\Exception $e) {
-            return $e;
             DB::rollback();
+            \Log::error('angsuran kelompok error', ['msg' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'msg' => $e->getMessage()
+            ]);
         }
     }
 
@@ -1265,22 +1276,29 @@ class TransaksiController extends Controller
 
             $whatsapp = false;
             $pesan = '';
-            if (strlen($pinj_a->anggota->hp) >= 11 && strlen(auth()->user()->hp) >= 11 && (Keuangan::startWith($pinj_a->anggota->hp, '08') || Keuangan::startWith($pinj_a->anggota->hp, '628'))) {
-                $nama_kelompok = $pinj_a->anggota->namadepan;
-                $desa = $pinj_a->anggota->d->sebutan_desa->sebutan_desa . ' ' . $pinj_a->anggota->d->nama_desa;
+            try {
+                if (strlen($pinj_a->anggota->hp) >= 11 && strlen(auth()->user()->hp) >= 11 && (Keuangan::startWith($pinj_a->anggota->hp, '08') || Keuangan::startWith($pinj_a->anggota->hp, '628'))) {
+                    $nama_kelompok = $pinj_a->anggota->namadepan;
+                    $desa = $pinj_a->anggota->d->sebutan_desa->sebutan_desa . ' ' . $pinj_a->anggota->d->nama_desa;
 
-                $whatsapp = true;
-                $pesan_wa = json_decode($kec->whatsapp, true);
-                $pesan = $pesan_wa['angsuran'];
-                $pesan = strtr($pesan, [
-                    '{Nama Kelompok}' => $nama_kelompok,
-                    '{Nama Desa}' => $desa,
-                    '{Angsuran Pokok}' => number_format($request->pokok),
-                    '{Angsuran Jasa}' => number_format($request->jasa),
-                    '{Tanggal Angsuran}' => Tanggal::tglIndo($tgl_transaksi),
-                    '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
-                    '{Telpon}' => auth()->user()->hp,
-                ]);
+                    $whatsapp = true;
+                    $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
+                    $pesan_wa = json_decode($kec->whatsapp ?? '{}', true) ?: [];
+                    $pesan = $pesan_wa['angsuran'] ?? 'Terima kasih, angsuran Anda telah kami catat.';
+                    $pesan = strtr($pesan, [
+                        '{Nama Kelompok}' => $nama_kelompok,
+                        '{Nama Desa}' => $desa,
+                        '{Angsuran Pokok}' => number_format($request->pokok),
+                        '{Angsuran Jasa}' => number_format($request->jasa),
+                        '{Tanggal Angsuran}' => Tanggal::tglIndo($tgl_transaksi),
+                        '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
+                        '{Telpon}' => auth()->user()->hp,
+                    ]);
+                }
+            } catch (\Exception $wa) {
+                \Log::warning('WA angsuran individu gagal dirangkai: ' . $wa->getMessage());
+                $whatsapp = false;
+                $pesan = '';
             }
 
             return response()->json([
@@ -1295,8 +1313,12 @@ class TransaksiController extends Controller
                 'pesan' => $pesan,
             ]);
         } catch (\Exception $e) {
-            return $e;
             DB::rollback();
+            \Log::error('angsuran individu error', ['msg' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'msg' => $e->getMessage()
+            ]);
         }
     }
 
