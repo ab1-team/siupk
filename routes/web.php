@@ -28,6 +28,7 @@ use App\Http\Controllers\SimpananController;
 use App\Http\Controllers\SopController;
 use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Auth\SsoController;
 use App\Models\Kecamatan;
 use App\Models\PinjamanKelompok;
 use App\Models\User;
@@ -43,6 +44,12 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+// SSO auto-login dari Holding App. Hanya untuk user BELUM login.
+// lihat: .guide/sso-subsidiary-guide.md
+Route::get('/auth/sso', [SsoController::class, 'consume'])
+    ->name('auth.sso')
+    ->middleware('guest');
 
 Route::get('/master', [AdminAuthController::class, 'index'])->middleware('guest');
 Route::post('/master/login', [AdminAuthController::class, 'login'])->middleware('guest');
@@ -154,6 +161,8 @@ Route::put('/pengaturan/spk/{kec}', [SopController::class, 'spk'])->middleware('
 Route::put('/pengaturan/logo/{kec}', [SopController::class, 'logo'])->middleware('auth');
 Route::put('/pengaturan/calk/{kec}', [SopController::class, 'calk'])->middleware('auth');
 
+Route::post('/pengaturan/whatsapp/save_device', [SopController::class, 'save_whatsapp_session'])->middleware('auth');
+Route::post('/pengaturan/whatsapp/delete_session', [SopController::class, 'delete_whatsapp_session'])->middleware('auth');
 Route::post('/pengaturan/whatsapp/{token}', [SopController::class, 'whatsapp'])->middleware('auth');
 
 Route::get('/pengaturan/invoice', [SopController::class, 'invoice'])->middleware('auth');
@@ -279,7 +288,7 @@ Route::get('/transaksi/form_angsuran_individu/{id_pinkel}', [TransaksiController
 
 Route::get('/transaksi/angsuran/target/{id_pinkel}', [TransaksiController::class, 'targetAngsuran'])->middleware('auth');
 Route::get('/transaksi/angsuran_individu/target/{id_pinkel}', [TransaksiController::class, 'targetAngsuranIndividu'])->middleware('auth');
-Route::post('/transaksi/angsuran_individu', [TransaksiController::class, 'angsuranIndividu']);
+Route::post('/transaksi/angsuran_individu', [TransaksiController::class, 'angsuranIndividu'])->middleware('auth');
 
 Route::get('/transaksi/data/{idt}', [TransaksiController::class, 'data'])->middleware('auth');
 Route::get('/transaksi/tutup_buku/saldo_awal/{tahun}', [TransaksiController::class, 'saldoAwal'])->middleware('auth');
@@ -303,6 +312,7 @@ Route::post('/transaksi/angsuran/cetak_bkm', [TransaksiController::class, 'cetak
 
 Route::get('/transaksi/generate_real/{id_pinkel}', [TransaksiController::class, 'generateReal'])->middleware('auth');
 Route::get('/transaksi/regenerate_real/{id_pinkel}', [TransaksiController::class, 'realisasi'])->middleware('auth');
+Route::get('/transaksi/regenerate_real_i/{id_pinj_i}', [TransaksiController::class, 'realisasii'])->middleware('auth');
 
 Route::get('/transaksi/angsuran/form_anggota/{id_pinkel}', [TransaksiController::class, 'formAnggota'])->middleware('auth');
 Route::get('/transaksi/angsuran/form_anggota_i/{id_pinkel}', [TransaksiController::class, 'formAnggotaIndividu'])->middleware('auth');

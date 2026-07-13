@@ -11,7 +11,7 @@
                 <div class="row justify-content-center align-items-center">
                     <div class="col-sm-auto col-4">
                         <div class="avatar avatar-xl position-relative pointer" id="fileUpload">
-                            <img src="{{ asset('/storage/profil/' . $user->foto) }}" alt="bruce"
+                            <img src="{{ $user->foto ? asset('storage/profil/' . $user->foto) : asset('assets/img/no_image.png') }}" alt="bruce"
                                 class="w-100 rounded-circle shadow-sm" id="preview">
                         </div>
 

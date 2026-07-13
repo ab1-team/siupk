@@ -276,12 +276,10 @@
         
         @if ($perguliran_i->status == 'A')
             <div class="d-flex justify-content-end mt-3">
-                <button type="button" data-bs-toggle="modal" data-bs-target="#Rescedule"
-                    class="btn btn-warning btn-sm"
-                    @if (!in_array('perguliran.resceduling', Session::get('tombol', [])))
-                        disabled
-                    @endif
-                >Resceduling Pinjaman</button>
+                @if (auth()->user()->jabatan == '1' && auth()->user()->level == '1')
+                    <button type="button" data-bs-toggle="modal" data-bs-target="#Rescedule"
+                        class="btn btn-warning btn-sm">Resceduling Pinjaman</button>
+                @endif
                 <button type="button" data-bs-toggle="modal" data-bs-target="#Penghapusan"
                     class="btn btn-danger btn-sm ms-1"
                     @if (!in_array('perguliran.penghapusan', Session::get('tombol', [])))

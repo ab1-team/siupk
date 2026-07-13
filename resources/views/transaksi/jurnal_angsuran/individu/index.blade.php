@@ -216,6 +216,15 @@
             </div>
         </div>
     </div>
+
+    <form action="/transaksi/hapus" method="post" id="formHapusAngsuranI">
+        @csrf
+
+        <input type="hidden" name="del_idt" id="del_idt_angsuran_i">
+        <input type="hidden" name="del_idtp" id="del_idtp_angsuran_i">
+        <input type="hidden" name="del_id_pinj" id="del_id_pinj_angsuran_i">
+        <input type="hidden" name="del_id_pinj_i" id="del_id_pinj_i_angsuran_i">
+    </form>
 @endsection
 
 @section('script')
@@ -461,40 +470,106 @@
             });
         })
 
-        function sendMsg(number, nama, msg, repeat = 0) {
-            $.ajax({
-                type: 'post',
-                url: '{{ $api }}/send-text',
-                timeout: 0,
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                xhrFields: {
-                    withCredentials: true
-                },
-                data: JSON.stringify({
-                    token: "{{ auth()->user()->ip }}",
-                    number: number,
-                    text: msg
-                }),
-                success: function(result) {
-                    if (result.status) {
-                        MultiToast('success', 'Pesan untuk kelompok ' + nama + ' berhasil dikirim')
-                    } else {
-                        if (repeat < 1) {
-                            setTimeout(function() {
-                                sendMsg(number, nama, msg, repeat + 1)
-                            }, 1000)
-                        } else {
-                            MultiToast('error', 'Pesan untuk kelompok ' + nama + ' gagal dikirim')
+        $(document).on('click', '.btn-delete-angsuran', function(e) {
+            e.preventDefault()
+
+            var idt = $(this).attr('data-idt')
+            var idtp = $(this).attr('data-idtp')
+            var id_pinj = $(this).attr('data-id-pinj')
+            var id_pinj_i = $(this).attr('data-id-pinj-i')
+
+            $('#del_idt_angsuran_i').val(idt)
+            $('#del_idtp_angsuran_i').val(idtp)
+            $('#del_id_pinj_angsuran_i').val(id_pinj)
+            $('#del_id_pinj_i_angsuran_i').val(id_pinj_i)
+
+            Swal.fire({
+                title: 'Peringatan',
+                text: 'Setelah menekan tombol Hapus Transaksi, maka transaksi ini akan dihapus (soft delete) dan data pinjaman akan di-generate ulang.',
+                showCancelButton: true,
+                confirmButtonText: 'Hapus Transaksi',
+                cancelButtonText: 'Batal',
+                icon: 'warning',
+                confirmButtonColor: '#d33'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var form = $('#formHapusAngsuranI')
+                    var id = $('#id').val()
+                    var ch_pokok = document.getElementById('chartP').getContext("2d");
+                    var ch_jasa = document.getElementById('chartJ').getContext("2d");
+
+                    var loading = Swal.fire({
+                        title: "Mohon Menunggu..",
+                        html: "Menghapus transaksi & generate ulang pinjaman.",
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
                         }
+                    })
+
+                    $.ajax({
+                        type: form.attr('method'),
+                        url: form.attr('action'),
+                        data: form.serialize(),
+                        success: function(result) {
+                            if (result.success) {
+                                $.get('/transaksi/regenerate_real_i/' + id_pinj_i, function() {
+                                    loading.close()
+                                    Swal.fire('Berhasil!', result.msg, 'success')
+                                        .then(() => {
+                                            $.get('/transaksi/angsuran/detail_angsuran_i/' + id,
+                                                function(res) {
+                                                    $('#LayoutDetailAngsuran').html(res.view)
+                                                    $('#LayoutBuktiAngsuran').html(res.cetak)
+                                                })
+                                            $.get('/transaksi/form_angsuran_individu/' + id,
+                                                function(res) {
+                                                    angsuran(true, res)
+                                                    makeChart('pokok', ch_pokok, res.sisa_pokok, res.sum_pokok)
+                                                    makeChart('jasa', ch_jasa, res.sisa_jasa, res.sum_jasa)
+                                                })
+                                        })
+                                })
+                            } else {
+                                loading.close()
+                                Swal.fire('Error', result.msg, 'warning')
+                            }
+                        },
+                        error: function(xhr) {
+                            loading.close()
+                            var msg = 'Gagal menghapus transaksi.'
+                            if (xhr.responseJSON && xhr.responseJSON.msg) {
+                                msg = xhr.responseJSON.msg
+                            }
+                            Swal.fire('Error', msg, 'warning')
+                        }
+                    })
+                }
+            })
+        })
+
+        function sendMsg(number, nama, msg, repeat = 0) {
+            const DEVICE_ID = '{{ $wa_device_id ?? "" }}'
+            const DEVICE_KEY = '{{ $wa_device_key ?? "" }}'
+
+            $.ajax({
+                type: 'POST',
+                url: '{{ $api }}/api/send/text',
+                headers: { 'x-api-key': DEVICE_KEY },
+                data: { device_id: DEVICE_ID, to: number, message: msg },
+                success: function(result) {
+                    if (result.success) {
+                        MultiToast('success', 'Pesan untuk kelompok ' + nama + ' berhasil dikirim')
+                    } else if (repeat < 1) {
+                        setTimeout(function() { sendMsg(number, nama, msg, repeat + 1) }, 1000)
+                    } else {
+                        MultiToast('error', 'Pesan untuk kelompok ' + nama + ' gagal dikirim')
                     }
                 },
-                error: function(result) {
+                error: function() {
                     if (repeat < 1) {
-                        setTimeout(function() {
-                            sendMsg(number, nama, msg, repeat + 1)
-                        }, 1000)
+                        setTimeout(function() { sendMsg(number, nama, msg, repeat + 1) }, 1000)
                     } else {
                         MultiToast('error', 'Pesan untuk kelompok ' + nama + ' gagal dikirim')
                     }

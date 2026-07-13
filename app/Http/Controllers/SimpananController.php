@@ -436,8 +436,7 @@ public function cetakPadaBuku($idt)
 
     public function generateSimpanan()
     {
-        $lokasi = 1;
-        $kd_kab = 1;
+        $lokasi = Session::get('lokasi');
 
         $request = request();
         if ($request->filled('id')) {
@@ -445,19 +444,19 @@ public function cetakPadaBuku($idt)
             $idArray = explode(',', $id);
             $idArray = array_map('trim', $idArray);
             $idArray = array_filter($idArray, 'is_numeric');
-            $where = "id IN (" . implode(',', $idArray) . ")";
+            $simpanan = DB::table("simpanan_anggota_$lokasi")
+                ->whereIn('id', $idArray)
+                ->orderBy('id', 'ASC')
+                ->get();
         } else {
-            $where = 1;
+            $simpanan = DB::table("simpanan_anggota_$lokasi")
+                ->orderBy('id', 'ASC')
+                ->get();
         }
-
-        $simpanan = DB::table("simpanan_anggota_$kd_kab")
-            ->whereRaw($where)
-            ->orderBy('id', 'ASC')
-            ->get();
 
         $total = $simpanan->count();
 
-        $start = $request->input('start', 0);
+        $start = intval($request->input('start', 0));
         $per_page = 25;
 
         $simpananChunk = $simpanan->slice($start, $per_page);
@@ -467,31 +466,63 @@ public function cetakPadaBuku($idt)
 
             $transaksi = DB::table("transaksi_$lokasi")
                 ->where('id_simp', $simp->id)
+                ->whereNull('deleted_at')
                 ->orderBy('tgl_transaksi', 'ASC')
-                ->orderBy('urutan', 'ASC') 
+                ->orderByRaw("CASE
+                    WHEN rekening_debit LIKE '1.1.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 0
+                    WHEN rekening_debit LIKE '5.2.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 1
+                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '1.1.01%' THEN 2
+                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '2.1.03%' THEN 3
+                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '4.1.03%' THEN 4
+                    ELSE 5
+                END")
                 ->orderBy('idt', 'ASC')
                 ->get();
 
             $sum = 0;
+            $str = 1;
             foreach ($transaksi as $trx) {
-                $cif = $simp->id;
-                $tgl_transaksi = $trx->tgl_transaksi;
-                
-                    $real_d = $trx->realSimpanan->real_d;
-                    $real_k = $trx->realSimpanan->real_k;
-                    $sum    = $trx->realSimpanan->sum;
+                $real_d = 0;
+                $real_k = 0;
+                $kode = 0;
 
-                $lu = now();
-                $id_user = $trx->id_user;
+                $rdeb = $trx->rekening_debit ?? '';
+                $rkre = $trx->rekening_kredit ?? '';
+                $rdeb_prefix = substr($rdeb, 0, 6);
+                $rkre_prefix = substr($rkre, 0, 6);
+
+                $is_rek_simp_kredit = in_array($rkre_prefix, ['2.1.05', '2.2.05']);
+                $is_rek_simp_debit  = in_array($rdeb_prefix, ['2.1.05', '2.2.05']);
+                $is_kas_debit       = $rdeb_prefix === '1.1.01';
+                $is_kas_kredit      = $rkre_prefix === '1.1.01';
+                $is_bunga_debit     = $rdeb_prefix === '5.2.01';
+                $is_pajak_kredit    = $rkre_prefix === '2.1.03';
+                $is_admin_kredit    = $rkre_prefix === '4.1.03';
+
+                if ($is_kas_debit && $is_rek_simp_kredit && $str == 1) {
+                    $kode = 1; $real_k = $trx->jumlah; $sum += $trx->jumlah; $str = 2;
+                } elseif ($is_kas_debit && $is_rek_simp_kredit) {
+                    $kode = 2; $real_k = $trx->jumlah; $sum += $trx->jumlah;
+                } elseif ($is_rek_simp_debit && $is_kas_kredit) {
+                    $kode = 3; $real_d = $trx->jumlah; $sum -= $trx->jumlah;
+                } elseif ($is_bunga_debit && $is_rek_simp_kredit) {
+                    $kode = 5; $real_k = $trx->jumlah; $sum += $trx->jumlah;
+                } elseif ($is_rek_simp_debit && $is_pajak_kredit) {
+                    $kode = 6; $real_d = $trx->jumlah; $sum -= $trx->jumlah;
+                } elseif ($is_rek_simp_debit && $is_admin_kredit) {
+                    $kode = 7; $real_d = $trx->jumlah; $sum -= $trx->jumlah;
+                }
 
                 DB::table("real_simpanan_$lokasi")->insert([
-                    'cif' => $cif,
-                    'tgl_transaksi' => $tgl_transaksi,
+                    'cif' => $simp->id,
+                    'idt' => $trx->idt,
+                    'kode' => $kode,
+                    'tgl_transaksi' => $trx->tgl_transaksi,
                     'real_d' => $real_d,
                     'real_k' => $real_k,
                     'sum' => $sum,
-                    'lu' => $lu,
-                    'id_user' => $id_user
+                    'lu' => now(),
+                    'id_user' => $trx->id_user,
                 ]);
             }
         }
@@ -500,7 +531,7 @@ public function cetakPadaBuku($idt)
             return redirect()->route('simpanan.index')->with('success', 'Proses generate simpanan telah selesai');
         }
         
-        $title = 'generate Simpanan';
+        $title = 'Generate Simpanan';
         return view('simpanan.generate', compact('title', 'total', 'start', 'per_page'));
     }
     
@@ -515,7 +546,14 @@ public function cetakPadaBuku($idt)
             $transaksis = Transaksi::where('id_simp', $cif)
                 ->whereNull('deleted_at')
                 ->orderBy('tgl_transaksi', 'asc')
-                ->orderBy('urutan', 'asc')
+                ->orderByRaw("CASE
+                    WHEN rekening_debit LIKE '1.1.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 0
+                    WHEN rekening_debit LIKE '5.2.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 1
+                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '1.1.01%' THEN 2
+                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '2.1.03%' THEN 3
+                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '4.1.03%' THEN 4
+                    ELSE 5
+                END")
                 ->orderBy('idt', 'asc')
                 ->get();
 

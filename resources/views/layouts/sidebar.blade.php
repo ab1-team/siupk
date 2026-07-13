@@ -38,7 +38,7 @@
         <ul class="navbar-nav">
             <li class="nav-item mb-2 mt-0">
                 <a href="/profil" class="nav-link text-white">
-                    <img src="{{ asset('storage/profil/' . Session::get('foto')) }}" class="avatar" id="profil_avatar">
+                    <img src="{{ Session::get('foto') ? asset('storage/profil/' . Session::get('foto')) : asset('assets/img/avatar.png') }}" class="avatar" id="profil_avatar">
                     <span class="nav-link-text ms-2 ps-1 nama_user">{{ Session::get('nama') }}</span>
                 </a>
             </li>

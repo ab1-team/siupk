@@ -5,6 +5,7 @@
 @extends('pelaporan.layout.base')
 
 @section('content')
+    @php $first_report = true; @endphp
     @foreach ($jenis_pp as $jpp)
         @php
             if ($jpp->pinjaman_anggota->isEmpty()) {
@@ -40,13 +41,12 @@
                 
                 $grouped_data[$kd_desa]['kelompok'][$id_pinkel]['anggota'][] = $pinj;
             }
-
-            $show_break = false;
         @endphp
 
-        @if ($show_break && $jpp->nama_jpp != 'SPP')
-            <div class="break"></div>
+        @if (!$first_report)
+            <div style="page-break-before: always;"></div>
         @endif
+        @php $first_report = false; @endphp
 
         <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;">
             <tr>
@@ -183,8 +183,5 @@
             @endif
         </table>
 
-        @php
-            $show_break = true;
-        @endphp
     @endforeach
 @endsection

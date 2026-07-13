@@ -102,7 +102,11 @@ class DashboardController extends Controller
         $data['saldo'] = $this->_saldo($tgl);
         $data['jumlah_saldo'] = Saldo::where('kode_akun', 'NOT LIKE', $kec->kd_kec . '%')->count();
 
-        $data['api'] = env('APP_API', 'https://api-whatsapp.siupk.net');
+        $wa = $kec->wa_session;
+        $data['api'] = env('APP_API', 'http://localhost:3000');
+        $data['api_key'] = env('APP_API_KEY');
+        $data['wa_device_id'] = $wa->device_id ?? null;
+        $data['wa_device_key'] = $wa->device_key ?? null;
         $data['title'] = "Dashboard";
         $data['nama_upk'] = $kec->nama_kec;
         return view('dashboard.index')->with($data);
@@ -582,13 +586,6 @@ class DashboardController extends Controller
         $tgl_bayar = Tanggal::tglNasional($request->tgl_pembayaran);
         $pesan = $pesan_wa['tagihan'];
 
-        $pesan = strtr($pesan, [
-            '{Tanggal Jatuh Tempo}' => $request->tgl_tagihan,
-            '{Tanggal Bayar}' => $request->tgl_pembayaran,
-            '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
-            '{Telpon}' => auth()->user()->hp
-        ]);
-
         $pinjaman = PinjamanKelompok::where('status', 'A')->whereDay('tgl_cair', date('d', strtotime($tanggal)))->with([
             'target' => function ($query) use ($tanggal) {
                 $query->where([
@@ -604,9 +601,29 @@ class DashboardController extends Controller
             'kelompok.d.sebutan_desa'
         ])->get();
 
+        $bulan_angsuran = Tanggal::tglIndo($tanggal);
+
+        $rows = [];
+        foreach ($pinjaman as $pin) {
+            $kel = $pin->kelompok;
+            if (!$kel) continue;
+            $numberRaw = preg_replace('/[^0-9+]/', '', $kel->telpon ?? '');
+            if (!preg_match('/^(\+?62|0)(\d{8,15})$/', $numberRaw)) continue;
+
+            $desa = $kel->d ? ($kel->d->sebutan_desa->sebutan_desa ?? 'Desa') . ' ' . $kel->d->nama_desa : '';
+
+            $rows[] = [
+                'id_pinkel' => $pin->id,
+                'nama_kelompok' => $kel->nama_kelompok,
+                'desa' => $desa,
+                'telpon' => $kel->telpon,
+                'number' => $numberRaw,
+            ];
+        }
+
         return response()->json([
             'success' => true,
-            'tagihan' => view('dashboard.partials.tagihan')->with(compact('pinjaman', 'pesan'))->render()
+            'tagihan' => view('dashboard.partials.tagihan')->with(compact('pinjaman', 'pesan'))->render(),
         ]);
     }
 

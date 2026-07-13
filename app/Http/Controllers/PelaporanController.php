@@ -4432,6 +4432,28 @@ private function pinjaman_anggota_hapus(array $data)
         $tb_angg = 'anggota_' . $data['kec']->id;
         $data['tb_simp'] = $tb_simp;
 
+        // Skip jika tabel tidak ada atau kosong
+        $hasSimpanan = DB::table($tb_simp)->exists();
+        if (!$hasSimpanan) {
+            $data['jenis_ps'] = collect();
+            $data['lunas'] = collect();
+            $view = view('pelaporan.view.simpanan', $data)->render();
+            if ($data['type'] == 'pdf') {
+                return PDF::loadHTML($view)->setPaper('A4', 'landscape')->stream();
+            }
+            return $view;
+        }
+
+        // Pre-aggregate real_s sums in a single query (avoids N+1)
+        $sums = DB::table('real_simpanan_' . $data['kec']->id)
+            ->select('cif')
+            ->selectRaw('SUM(real_d) as sum_real_d')
+            ->selectRaw('SUM(real_k) as sum_real_k')
+            ->where('tgl_transaksi', '<=', $tgl_kondisi)
+            ->groupBy('cif')
+            ->get()
+            ->keyBy('cif');
+
         // Query dasar JenisSimpanan
         $data['jenis_ps'] = JenisSimpanan::where(function ($query) use ($kec) {
             $query->where('lokasi', '0')
@@ -4452,12 +4474,6 @@ private function pinjaman_anggota_hapus(array $data)
                     ->join($tb_angg, "{$tb_angg}.id", '=', "{$tb_simp}.nia")
                     ->join('desa', "{$tb_angg}.desa", '=', 'desa.kd_desa')
                     ->join('sebutan_desa', 'sebutan_desa.id', '=', 'desa.sebutan')
-                    ->withSum(['real_s' => function ($query) use ($tgl_kondisi) {
-                        $query->where('tgl_transaksi', '<=', $tgl_kondisi);
-                    }], 'real_d')
-                    ->withSum(['real_s' => function ($query) use ($tgl_kondisi) {
-                        $query->where('tgl_transaksi', '<=', $tgl_kondisi);
-                    }], 'real_k')
                     ->where(function ($query) use ($tb_simp, $tgl_kondisi) {
                         $query->where([
                             ["{$tb_simp}.status", 'A'],
@@ -4472,11 +4488,21 @@ private function pinjaman_anggota_hapus(array $data)
                     ->orderBy("{$tb_angg}.desa", 'ASC')
                     ->orderBy("{$tb_simp}.tgl_buka", 'ASC');
             },
-            'simpanan.realSimpananTerbesar' => function ($query) use ($tgl_kondisi) {
-                $query->where('tgl_transaksi', '<=', $tgl_kondisi)
-                    ->orderBy('id', 'desc');
-            },
         ])->get();
+
+        // Map pre-aggregated sums onto simpanan
+        foreach ($data['jenis_ps'] as $js) {
+            foreach ($js->simpanan as $simp) {
+                $cif = $simp->id;
+                if (isset($sums[$cif])) {
+                    $simp->real_s_sum_real_d = $sums[$cif]->sum_real_d;
+                    $simp->real_s_sum_real_k = $sums[$cif]->sum_real_k;
+                } else {
+                    $simp->real_s_sum_real_d = 0;
+                    $simp->real_s_sum_real_k = 0;
+                }
+            }
+        }
 
         $data['lunas'] = Simpanan::where([
             ['tgl_tutup', '<', $thn . '-01-01'],

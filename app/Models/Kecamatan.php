@@ -14,7 +14,8 @@ class Kecamatan extends Model
 
     protected $fillable = [
         'web_kec',
-        'web_alternatif'
+        'web_alternatif',
+        'whatsapp',
     ];
 
     public function kabupaten()
@@ -35,5 +36,10 @@ class Kecamatan extends Model
     public function saldo()
     {
         return $this->hasMany(Saldo::class, 'kode_akun', 'kd_kec');
+    }
+
+    public function wa_session()
+    {
+        return $this->hasOne(Whatsapp::class, 'lokasi', 'id');
     }
 }

@@ -472,9 +472,11 @@ class KeuanganOJK
         $sum_saldo_pokok = 0;
         $sum_saldo_jasa = 0;
     
-        $sum_kolek = [];
+        $sum_kolek_kelompok = [];
+        $sum_kolek_individu = [];
         foreach ($kolekData as $index => $kolek) {
-            $sum_kolek[$index] = 0;
+            $sum_kolek_kelompok[$index] = 0;
+            $sum_kolek_individu[$index] = 0;
         }
 
         $pinjaman_kelompok = PinjamanKelompok::where('sistem_angsuran', '!=', '12')
@@ -562,10 +564,8 @@ class KeuanganOJK
                 }
             ])->get();
 
-        // Gabungkan pinjaman kelompok dan individu
-        $all_pinjaman = $pinjaman_kelompok->concat($pinjaman_individu);
-
-        foreach ($all_pinjaman as $pinj) {
+        // Proses pinjaman kelompok - TERPISAH
+        foreach ($pinjaman_kelompok as $pinj) {
             $real_pokok = 0;
             $real_jasa = 0;
             $sum_pokok = 0;
@@ -610,7 +610,6 @@ class KeuanganOJK
                 $tunggakan_jasa = 0;
             }
 
-            // Reset tunggakan dan saldo jika sudah lunas/hapus buku
             if ($pinj->tgl_lunas <= $data['tgl_kondisi'] && in_array($pinj->status, ['L', 'R', 'H'])) {
                 $tunggakan_pokok = 0;
                 $tunggakan_jasa = 0;
@@ -631,15 +630,12 @@ class KeuanganOJK
                 $_kolek = ($tunggakan_pokok / $wajib_pokok);
             }
         
-            // Gunakan floor seperti kode asli
             $kolek_bulan = floor($_kolek + ($selisih - $angsuran_ke));
 
-            // Tentukan tingkat kolek berdasarkan konfigurasi dari database
             $tingkat_kolek_index = $this->getTingkatKolek($kolek_bulan, $kolekData);
         
-            // Distribusikan saldo_pokok ke tingkat kolek yang sesuai
             if ($tingkat_kolek_index !== null) {
-                $sum_kolek[$tingkat_kolek_index] += $saldo_pokok;
+                $sum_kolek_kelompok[$tingkat_kolek_index] += $saldo_pokok;
             }
 
             $sum_nunggak_pokok += $tunggakan_pokok;
@@ -648,14 +644,100 @@ class KeuanganOJK
             $sum_saldo_jasa += $saldo_jasa;
         }
 
-        // Hitung total kolek berdasarkan prosentase dari konfigurasi
-        $total_kolek = 0;
+        // Proses pinjaman individu - TERPISAH
+        foreach ($pinjaman_individu as $pinj) {
+            $real_pokok = 0;
+            $real_jasa = 0;
+            $sum_pokok = 0;
+            $sum_jasa = 0;
+            $saldo_pokok = $pinj->alokasi;
+            $saldo_jasa = 0;
+        
+            if ($pinj->pros_jasa > 0) {
+                $saldo_jasa = $pinj->pros_jasa == 0 ? 0 : $pinj->alokasi * ($pinj->pros_jasa / 100);
+            }
+        
+            if ($pinj->saldo) {
+                $real_pokok = $pinj->saldo->realisasi_pokok;
+                $real_jasa = $pinj->saldo->realisasi_jasa;
+                $sum_pokok = $pinj->saldo->sum_pokok;
+                $sum_jasa = $pinj->saldo->sum_jasa;
+                $saldo_pokok = $pinj->saldo->saldo_pokok;
+                $saldo_jasa = $pinj->saldo->saldo_jasa;
+            }
+
+            $target_pokok = 0;
+            $target_jasa = 0;
+            $wajib_pokok = 0;
+            $wajib_jasa = 0;
+            $angsuran_ke = 0;
+        
+            if ($pinj->target) {
+                $target_pokok = $pinj->target->target_pokok;
+                $target_jasa = $pinj->target->target_jasa;
+                $wajib_pokok = $pinj->target->wajib_pokok;
+                $wajib_jasa = $pinj->target->wajib_jasa;
+                $angsuran_ke = $pinj->target->angsuran_ke;
+            }
+
+            $tunggakan_pokok = $target_pokok - $sum_pokok;
+            if ($tunggakan_pokok < 0) {
+                $tunggakan_pokok = 0;
+            }
+        
+            $tunggakan_jasa = $target_jasa - $sum_jasa;
+            if ($tunggakan_jasa < 0) {
+                $tunggakan_jasa = 0;
+            }
+
+            if ($pinj->tgl_lunas <= $data['tgl_kondisi'] && in_array($pinj->status, ['L', 'R', 'H'])) {
+                $tunggakan_pokok = 0;
+                $tunggakan_jasa = 0;
+                $saldo_pokok = 0;
+                $saldo_jasa = 0;
+            }
+
+            $tgl_cair = explode('-', $pinj->tgl_cair);
+            $th_cair = $tgl_cair[0];
+            $bl_cair = $tgl_cair[1];
+
+            $selisih_tahun = ($data['tahun'] - $th_cair) * 12;
+            $selisih_bulan = $data['bulan'] - $bl_cair;
+            $selisih = $selisih_bulan + $selisih_tahun;
+
+            $_kolek = 0;
+            if ($wajib_pokok != '0') {
+                $_kolek = ($tunggakan_pokok / $wajib_pokok);
+            }
+        
+            $kolek_bulan = floor($_kolek + ($selisih - $angsuran_ke));
+
+            $tingkat_kolek_index = $this->getTingkatKolek($kolek_bulan, $kolekData);
+        
+            if ($tingkat_kolek_index !== null) {
+                $sum_kolek_individu[$tingkat_kolek_index] += $saldo_pokok;
+            }
+
+            $sum_nunggak_pokok += $tunggakan_pokok;
+            $sum_nunggak_jasa += $tunggakan_jasa;
+            $sum_saldo_pokok += $saldo_pokok;
+            $sum_saldo_jasa += $saldo_jasa;
+        }
+
+        // Hitung total kolek berdasarkan prosentase - TERPISAH KELMPOK DAN INDIVIDU
+        // SAMA PERSIS DENGAN CARA USER JUMLAHKAN MANUAL DARI 2 LAPORAN
+        $total_kolek_kelompok = 0;
+        $total_kolek_individu = 0;
+        $sum_kolek = [];
         foreach ($kolekData as $index => $kolek) {
-            if (!empty($kolek['prosentase']) && isset($sum_kolek[$index])) {
+            $sum_kolek[$index] = $sum_kolek_kelompok[$index] + $sum_kolek_individu[$index];
+            if (!empty($kolek['prosentase'])) {
                 $prosentase = floatval($kolek['prosentase']);
-                $total_kolek += ($sum_kolek[$index] * $prosentase / 100);
+                $total_kolek_kelompok += round(($sum_kolek_kelompok[$index] * $prosentase) / 100);
+                $total_kolek_individu += round(($sum_kolek_individu[$index] * $prosentase) / 100);
             }
         }
+        $total_kolek = $total_kolek_kelompok + $total_kolek_individu;
 
         return [
             'nunggak_pokok' => $sum_nunggak_pokok,

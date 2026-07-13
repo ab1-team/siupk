@@ -54,7 +54,7 @@ class TransaksiController extends Controller
     {
         $title = 'Jurnal Angsuran';
 
-        $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
+        $kec = Kecamatan::where('id', Session::get('lokasi'))->with('wa_session')->first();
         $penyetor = "";
         if (request()->get('pinkel')) {
             $pinkel = PinjamanKelompok::where('id', request()->get('pinkel'))->with('kelompok');
@@ -64,15 +64,18 @@ class TransaksiController extends Controller
             $pinkel = '0';
         }
 
-        $api = env('APP_API', 'https://api-whatsapp.siupk.net');
-        return view('transaksi.jurnal_angsuran.index')->with(compact('title', 'pinkel', 'kec','penyetor', 'api'));
+        $api = env('APP_API', 'http://localhost:3000');
+        $api_key = env('APP_API_KEY');
+        $wa_device_id = $kec->wa_session->device_id ?? null;
+        $wa_device_key = $kec->wa_session->device_key ?? null;
+        return view('transaksi.jurnal_angsuran.index')->with(compact('title', 'pinkel', 'kec', 'penyetor', 'api', 'api_key', 'wa_device_id', 'wa_device_key'));
     }
 
     public function jurnalAngsuranIndividu()
     {
         $title = 'Jurnal Angsuran';
 
-        $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
+        $kec = Kecamatan::where('id', Session::get('lokasi'))->with('wa_session')->first();
         if (request()->get('pinkel')) {
             $pinkel = PinjamanAnggota::where('id', request()->get('pinkel'))->with('anggota');
             $pinkel = $pinkel->first();
@@ -80,8 +83,11 @@ class TransaksiController extends Controller
             $pinkel = '0';
         }
 
-        $api = env('APP_API', 'https://api-whatsapp.sidbm.net');
-        return view('transaksi.jurnal_angsuran.individu.index')->with(compact('title', 'pinkel', 'kec', 'api'));
+        $api = env('APP_API', 'http://localhost:3000');
+        $api_key = env('APP_API_KEY');
+        $wa_device_id = $kec->wa_session->device_id ?? null;
+        $wa_device_key = $kec->wa_session->device_key ?? null;
+        return view('transaksi.jurnal_angsuran.individu.index')->with(compact('title', 'pinkel', 'kec', 'api', 'api_key', 'wa_device_id', 'wa_device_key'));
     }
 
     public function ebudgeting()
@@ -1029,19 +1035,29 @@ class TransaksiController extends Controller
 
             $whatsapp = false;
             $pesan = '';
-            if (strlen($pinkel->kelompok->telpon) >= 11 && strlen(auth()->user()->hp) >= 11 && (Keuangan::startWith($pinkel->kelompok->telpon, '08') || Keuangan::startWith($pinkel->kelompok->telpon, '628'))) {
-                $nama_kelompok = $pinkel->kelompok->nama_kelompok;
-                $desa = $pinkel->kelompok->d->sebutan_desa->sebutan_desa . ' ' . $pinkel->kelompok->d->nama_desa;
+            try {
+                if (strlen($pinkel->kelompok->telpon) >= 11 && strlen(auth()->user()->hp) >= 11 && (Keuangan::startWith($pinkel->kelompok->telpon, '08') || Keuangan::startWith($pinkel->kelompok->telpon, '628'))) {
+                    $nama_kelompok = $pinkel->kelompok->nama_kelompok;
+                    $desa = $pinkel->kelompok->d->sebutan_desa->sebutan_desa . ' ' . $pinkel->kelompok->d->nama_desa;
 
-                $whatsapp = true;
-                $pesan .= "Yth. " . $nama_kelompok . " " . $desa . ",\n\n";
-                $pesan .= "Terima kasih atas pembayaran angsuran anda.\n";
-                $pesan .= "Rincian Pembayaran:\n";
-                $pesan .= "Pokok   : Rp. " . number_format($request->pokok) . "\n";
-                $pesan .= "Jasa      : Rp. " . number_format($request->jasa) . "\n\n";
-                $pesan .= "Pembayaran telah kami terima pada " . Tanggal::tglIndo($tgl_transaksi) . ".\n\n";
-                $pesan .= "Salam,\n" . auth()->user()->namadepan . " " . auth()->user()->namabelakang . "\n";
-                $pesan .= "Nomor Telepon: " . auth()->user()->hp;
+                    $whatsapp = true;
+                    $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
+                    $pesan_wa = json_decode($kec->whatsapp ?? '{}', true) ?: [];
+                    $pesan = $pesan_wa['angsuran'] ?? 'Terima kasih, angsuran Anda telah kami catat.';
+                    $pesan = strtr($pesan, [
+                        '{Nama Kelompok}' => $nama_kelompok,
+                        '{Nama Desa}' => $desa,
+                        '{Angsuran Pokok}' => number_format($request->pokok),
+                        '{Angsuran Jasa}' => number_format($request->jasa),
+                        '{Tanggal Angsuran}' => Tanggal::tglIndo($tgl_transaksi),
+                        '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
+                        '{Telpon}' => auth()->user()->hp,
+                    ]);
+                }
+            } catch (\Exception $wa) {
+                \Log::warning('WA angsuran kelompok gagal dirangkai: ' . $wa->getMessage());
+                $whatsapp = false;
+                $pesan = '';
             }
 
             return response()->json([
@@ -1053,11 +1069,15 @@ class TransaksiController extends Controller
                 'whatsapp' => $whatsapp,
                 'number' => $pinkel->kelompok->telpon,
                 'nama_kelompok' => $pinkel->kelompok->nama_kelompok,
-                'pesan' => $pesan
+                'pesan' => $pesan,
             ]);
         } catch (\Exception $e) {
-            return $e;
             DB::rollback();
+            \Log::error('angsuran kelompok error', ['msg' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'msg' => $e->getMessage()
+            ]);
         }
     }
 
@@ -1256,24 +1276,29 @@ class TransaksiController extends Controller
 
             $whatsapp = false;
             $pesan = '';
-            if (
-                strlen($pinj_a->anggota->hp) >= 11 && strlen(auth()->user()->hp) >= 11 &&
-                (Keuangan::startWith($pinj_a->anggota->hp, '08') ||
-                    Keuangan::startWith($pinj_a->anggota->hp, '628'))
-            ) {
+            try {
+                if (strlen($pinj_a->anggota->hp) >= 11 && strlen(auth()->user()->hp) >= 11 && (Keuangan::startWith($pinj_a->anggota->hp, '08') || Keuangan::startWith($pinj_a->anggota->hp, '628'))) {
+                    $nama_kelompok = $pinj_a->anggota->namadepan;
+                    $desa = $pinj_a->anggota->d->sebutan_desa->sebutan_desa . ' ' . $pinj_a->anggota->d->nama_desa;
 
-                $nama_kelompok = $pinj_a->anggota->namadepan;
-                $desa = $pinj_a->anggota->d->sebutan_desa->sebutan_desa . ' ' . $pinj_a->anggota->d->nama_desa;
-
-                $whatsapp = true;
-                $pesan .= "Yth. " . $nama_kelompok . " " . $desa . ",\n\n";
-                $pesan .= "Terima kasih atas pembayaran angsuran anda.\n";
-                $pesan .= "Rincian Pembayaran:\n";
-                $pesan .= "Pokok   : Rp. " . number_format($request->pokok) . "\n";
-                $pesan .= "Jasa      : Rp. " . number_format($request->jasa) . "\n\n";
-                $pesan .= "Pembayaran telah kami terima pada " . Tanggal::tglIndo($tgl_transaksi) . ".\n\n";
-                $pesan .= "Salam,\n" . auth()->user()->namadepan . " " . auth()->user()->namabelakang . "\n";
-                $pesan .= "Nomor Telepon: " . auth()->user()->hp;
+                    $whatsapp = true;
+                    $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
+                    $pesan_wa = json_decode($kec->whatsapp ?? '{}', true) ?: [];
+                    $pesan = $pesan_wa['angsuran'] ?? 'Terima kasih, angsuran Anda telah kami catat.';
+                    $pesan = strtr($pesan, [
+                        '{Nama Kelompok}' => $nama_kelompok,
+                        '{Nama Desa}' => $desa,
+                        '{Angsuran Pokok}' => number_format($request->pokok),
+                        '{Angsuran Jasa}' => number_format($request->jasa),
+                        '{Tanggal Angsuran}' => Tanggal::tglIndo($tgl_transaksi),
+                        '{User Login}' => auth()->user()->namadepan . ' ' . auth()->user()->namabelakang,
+                        '{Telpon}' => auth()->user()->hp,
+                    ]);
+                }
+            } catch (\Exception $wa) {
+                \Log::warning('WA angsuran individu gagal dirangkai: ' . $wa->getMessage());
+                $whatsapp = false;
+                $pesan = '';
             }
 
             return response()->json([
@@ -1285,11 +1310,15 @@ class TransaksiController extends Controller
                 'whatsapp' => $whatsapp,
                 'number' => $pinj_a->anggota->hp,
                 'namadepan' => $pinj_a->anggota->namadepan,
-                'pesan' => $pesan
+                'pesan' => $pesan,
             ]);
         } catch (\Exception $e) {
-            return $e;
             DB::rollback();
+            \Log::error('angsuran individu error', ['msg' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'msg' => $e->getMessage()
+            ]);
         }
     }
 
@@ -2028,6 +2057,13 @@ class TransaksiController extends Controller
 
     public function hapus(Request $request)
     {
+        if (!(auth()->user()->level == 1 && auth()->user()->jabatan == 1)) {
+            return response()->json([
+                'success' => false,
+                'msg' => 'Hanya direktur yang boleh menghapus transaksi.'
+            ], 403);
+        }
+
         $idt = $request->del_idt;
         $idtp = $request->del_idtp;
         $id_pinj = $request->del_id_pinj;

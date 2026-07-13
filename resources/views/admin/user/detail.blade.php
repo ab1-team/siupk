@@ -10,7 +10,7 @@
             <div class="card position-sticky top-10" style="border-radius: 15px;">
                 <div class="card-body text-center">
                     <div class="mt-3 mb-4">
-                        <img src="/storage/profil/{{ $user->foto }}" class="rounded-circle img-fluid"
+                        <img src="{{ $user->foto ? asset('storage/profil/' . $user->foto) : asset('assets/img/avatar.png') }}" class="rounded-circle img-fluid"
                             style="width: 100px;" />
                     </div>
                     <h4 class="mb-2">

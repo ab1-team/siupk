@@ -357,6 +357,7 @@ class PinjamanKelompokController extends Controller
      */
     public function show(PinjamanKelompok $perguliran)
     {
+        $user = auth()->user();
         $perguliran = $perguliran->with([
             'sis_pokok',
             'sis_jasa',
@@ -439,7 +440,7 @@ class PinjamanKelompokController extends Controller
             }
         }
 
-        return view('perguliran.partials/' . $view)->with(compact('perguliran', 'jenis_jasa', 'sistem_angsuran', 'sumber_bayar', 'debet', 'pinj_a'));
+        return view('perguliran.partials/' . $view)->with(compact('perguliran', 'jenis_jasa', 'sistem_angsuran', 'sumber_bayar', 'debet', 'pinj_a', 'user'));
     }
 
     public function detail(PinjamanKelompok $perguliran)
@@ -447,7 +448,8 @@ class PinjamanKelompokController extends Controller
         $title = 'Detal Pinjaman Kelompok ' . $perguliran->kelompok->nama_kelompok;
         $real = RealAngsuran::where('loan_id', $perguliran->id)->orderBy('tgl_transaksi', 'DESC')->orderBy('id', 'DESC')->first();
         $sistem_angsuran = SistemAngsuran::all();
-        return view('perguliran.detail')->with(compact('title', 'perguliran', 'real', 'sistem_angsuran'));
+        $user = auth()->user();
+        return view('perguliran.detail')->with(compact('title', 'perguliran', 'real', 'sistem_angsuran', 'user'));
     }
 
     public function pelunasan(PinjamanKelompok $perguliran)

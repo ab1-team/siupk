@@ -7,11 +7,13 @@ use App\Models\AkunLevel1;
 use App\Models\Kecamatan;
 use App\Models\TandaTanganLaporan;
 use App\Models\User;
+use App\Models\Whatsapp;
 use App\Utils\Pinjaman;
 use App\Utils\Tanggal;
 use DOMDocument;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Session;
@@ -19,14 +21,77 @@ use Yajra\DataTables\DataTables;
 
 class SopController extends Controller
 {
-    public function index()
+public function index()
     {
-        $api = env('APP_API', 'https://api-whatsapp.siupk.net');
+        $api = rtrim(config('services.wagateway.url'), '/');
+        $api_key = config('services.wagateway.api_key');
 
-        $kec = Kecamatan::where('id', Session::get('lokasi'))->with('ttd')->first();
-        $token = $kec->token;
-        $title = "Personalisasi SOP";
-        return view('sop.index')->with(compact('title', 'kec', 'api', 'token'));
+        $kec = Kecamatan::where('id', Session::get('lokasi'))->with('ttd', 'wa_session')->first();
+        $token = $kec->wa_session->token ?? $kec->token;
+
+        $device_id = $kec->wa_session->device_id ?? null;
+        $device_key = $kec->wa_session->device_key ?? null;
+
+        $title = 'Personalisasi SOP';
+
+        return view('sop.index')->with(compact('title', 'kec', 'api', 'token', 'api_key', 'device_id', 'device_key'));
+    }
+
+    public function save_whatsapp_session(Request $request)
+    {
+        $id = Session::get('lokasi');
+        $device_id = $request->device_id;
+        $device_key = $request->device_key;
+
+        Log::info('Saving WA Session: ', [
+            'lokasi' => $id,
+            'device_id' => $device_id,
+            'device_key' => $device_key,
+        ]);
+
+        if (! $id) {
+            return response()->json(['success' => false, 'msg' => 'Lokasi session tidak ditemukan']);
+        }
+
+        try {
+            $kec = Kecamatan::where('id', $id)->first();
+            Whatsapp::updateOrCreate(
+                ['lokasi' => $id],
+                [
+                    'nama' => $kec->nama_lembaga_sort ?? 'UPK',
+                    'token' => $kec->wa_session->token ?? $kec->token ?? '',
+                    'device_id' => $device_id,
+                    'device_key' => $device_key,
+                    'status' => 'connected',
+                ]
+            );
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            Log::error('DB Error saving WA session: '.$e->getMessage());
+
+            return response()->json(['success' => false, 'msg' => $e->getMessage()], 500);
+        }
+    }
+
+    public function delete_whatsapp_session(Request $request)
+    {
+        $lokasi = $request->input('lokasi', Session::get('lokasi'));
+
+        if ($lokasi === null || $lokasi === '') {
+            return response()->json([
+                'success' => false,
+                'deleted' => 0,
+                'message' => 'Lokasi tidak ditemukan.',
+            ], 422);
+        }
+
+        $deleted = Whatsapp::where('lokasi', $lokasi)->delete();
+
+        return response()->json([
+            'success' => true,
+            'deleted' => $deleted,
+        ]);
     }
 
     public function coa()
@@ -172,7 +237,7 @@ class SopController extends Controller
             'msg' => 'Sistem Pinjaman Berhasil Diperbarui.',
         ]);
     }
-    
+
     public function simpanan(Request $request, Kecamatan $kec)
     {
         $data = $request->only([
@@ -531,8 +596,8 @@ class SopController extends Controller
         if ($validate->fails()) {
             return response()->json($validate->errors(), Response::HTTP_BAD_REQUEST);
         }
-        
-        
+
+
         $kecamatan = Kecamatan::where('id', $kec->id)->update([
             'kolek' => json_encode($kolekData)
         ]);
@@ -551,7 +616,7 @@ class SopController extends Controller
 
         $data = $request->only([
             'tagihan',
-            'angsuran'
+            'angsuran',
         ]);
 
         $validate = Validator::make($data, [
@@ -565,11 +630,11 @@ class SopController extends Controller
 
         $wa = [
             'tagihan' => $data['tagihan'],
-            'angsuran' => $data['angsuran']
+            'angsuran' => $data['angsuran'],
         ];
 
         Kecamatan::where('id', $kec->id)->update([
-            'whatsapp' => $wa
+            'whatsapp' => $wa,
         ]);
 
         return response()->json([

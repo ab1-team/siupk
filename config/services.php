@@ -31,4 +31,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'wagateway' => [
+        'url' => env('https://wa-gateway.enpiistudio.com', 'http://localhost:3000'),
+        'api_key' => env('b105PzmqrNL2ajQas4j9QWEAWljSjrpN'),
+    ],
+
 ];

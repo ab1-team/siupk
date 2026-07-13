@@ -228,6 +228,15 @@
             </div>
         </div>
     </div>
+
+    <form action="/transaksi/hapus" method="post" id="formHapusAngsuran">
+        @csrf
+
+        <input type="hidden" name="del_idt" id="del_idt_angsuran">
+        <input type="hidden" name="del_idtp" id="del_idtp_angsuran">
+        <input type="hidden" name="del_id_pinj" id="del_id_pinj_angsuran">
+        <input type="hidden" name="del_id_pinj_i" id="del_id_pinj_i_angsuran">
+    </form>
 @endsection
 
 @section('script')
@@ -509,22 +518,112 @@
             });
         })
 
+        $(document).on('click', '.btn-delete-angsuran', function(e) {
+            e.preventDefault()
+
+            var idt = $(this).attr('data-idt')
+            var idtp = $(this).attr('data-idtp')
+            var id_pinj = $(this).attr('data-id-pinj')
+            var id_pinj_i = $(this).attr('data-id-pinj-i')
+
+            $('#del_idt_angsuran').val(idt)
+            $('#del_idtp_angsuran').val(idtp)
+            $('#del_id_pinj_angsuran').val(id_pinj)
+            $('#del_id_pinj_i_angsuran').val(id_pinj_i)
+
+            Swal.fire({
+                title: 'Peringatan',
+                text: 'Setelah menekan tombol Hapus Transaksi, maka transaksi ini akan dihapus (soft delete) dan data pinjaman akan di-generate ulang.',
+                showCancelButton: true,
+                confirmButtonText: 'Hapus Transaksi',
+                cancelButtonText: 'Batal',
+                icon: 'warning',
+                confirmButtonColor: '#d33'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var form = $('#formHapusAngsuran')
+                    var id = $('#id').val()
+                    var ch_pokok = document.getElementById('chartP').getContext("2d");
+                    var ch_jasa = document.getElementById('chartJ').getContext("2d");
+
+                    var loading = Swal.fire({
+                        title: "Mohon Menunggu..",
+                        html: "Menghapus transaksi & generate ulang pinjaman.",
+                        timerProgressBar: true,
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    })
+
+                    $.ajax({
+                        type: form.attr('method'),
+                        url: form.attr('action'),
+                        data: form.serialize(),
+                        success: function(result) {
+                            if (result.success) {
+                                $.get('/transaksi/regenerate_real/' + id, function() {
+                                    loading.close()
+                                    Swal.fire('Berhasil!', result.msg, 'success')
+                                        .then(() => {
+                                            $.get('/transaksi/angsuran/detail_angsuran/' + id,
+                                                function(res) {
+                                                    $('#LayoutDetailAngsuran').html(res.view)
+                                                    $('#LayoutBuktiAngsuran').html(res.cetak)
+                                                })
+                                            $.get('/transaksi/form_angsuran/' + id,
+                                                function(res) {
+                                                    angsuran(true, res)
+                                                    makeChart('pokok', ch_pokok, res.sisa_pokok, res.sum_pokok)
+                                                    makeChart('jasa', ch_jasa, res.sisa_jasa, res.sum_jasa)
+                                                })
+                                            $.get('/transaksi/angsuran/form_anggota/' + id,
+                                                function(res) {
+                                                    if (res.success) {
+                                                        $('#LayoutAngsuranAnggota').html(res.view)
+                                                    }
+                                                })
+                                        })
+                                })
+                            } else {
+                                loading.close()
+                                Swal.fire('Error', result.msg, 'warning')
+                            }
+                        },
+                        error: function(xhr) {
+                            loading.close()
+                            var msg = 'Gagal menghapus transaksi.'
+                            if (xhr.responseJSON && xhr.responseJSON.msg) {
+                                msg = xhr.responseJSON.msg
+                            }
+                            Swal.fire('Error', msg, 'warning')
+                        }
+                    })
+                }
+            })
+        })
+
         function sendMsg(number, nama, msg, repeat = 0) {
+            const DEVICE_ID = '{{ $wa_device_id ?? "" }}'
+            const DEVICE_KEY = '{{ $wa_device_key ?? "" }}'
+
             $.ajax({
-                type: 'post',
-                url: '{{ $api }}/api/message/{{ $kec->token }}/send_message',
-                data: {
-                    number: number,
-                    message: msg
-                },
+                type: 'POST',
+                url: '{{ $api }}/api/send/text',
+                headers: { 'x-api-key': DEVICE_KEY },
+                data: { device_id: DEVICE_ID, to: number, message: msg },
                 success: function(result) {
-                    MultiToast('success', 'Pesan untuk kelompok ' + nama + ' berhasil dikirim')
+                    if (result.success) {
+                        MultiToast('success', 'Pesan untuk kelompok ' + nama + ' berhasil dikirim')
+                    } else if (repeat < 1) {
+                        setTimeout(function() { sendMsg(number, nama, msg, repeat + 1) }, 1000)
+                    } else {
+                        MultiToast('error', 'Pesan untuk kelompok ' + nama + ' gagal dikirim')
+                    }
                 },
-                error: function(result) {
+                error: function() {
                     if (repeat < 1) {
-                        setTimeout(function() {
-                            sendMsg(number, nama, msg, repeat + 1)
-                        }, 1000)
+                        setTimeout(function() { sendMsg(number, nama, msg, repeat + 1) }, 1000)
                     } else {
                         MultiToast('error', 'Pesan untuk kelompok ' + nama + ' gagal dikirim')
                     }

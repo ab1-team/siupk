@@ -178,7 +178,7 @@
                 <div class="alert alert-error">{{ session('error') }}</div>
             @endif
 
-            <form action="{{ url('/generate_simpanan') }}" method="get">
+            <form action="{{ url('/generate_simpanan') }}" method="get" id="mainForm">
                 <div class="form-group">
                     <label for="id">CIF</label>
                     <input type="text" id="id" name="id" placeholder="Contoh: 101, 102, 103 atau kosongkan untuk semua CIF" autofocus>
@@ -186,8 +186,18 @@
                         Kosongkan untuk memproses <strong>semua CIF</strong>, atau masukkan beberapa CIF dipisah koma, contoh: <code>101, 102, 103</code>
                     </div>
                 </div>
-                <button type="submit" class="btn">Mulai Proses</button>
+                <button type="submit" class="btn" id="submitBtn">Mulai Proses</button>
             </form>
+            <script>
+                document.getElementById('mainForm').addEventListener('submit', function(e) {
+                    var idInput = document.getElementById('id');
+                    if (idInput.value.trim() === '') {
+                        e.preventDefault();
+                        idInput.value = 'all';
+                        this.submit();
+                    }
+                });
+            </script>
         </div>
     </div>
 </body>

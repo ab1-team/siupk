@@ -279,6 +279,7 @@
                         $prosentase = floatval($kolek['prosentase']);
                         $total_resiko += ($t_kolek[$idx] * $prosentase) / 100;
                     }
+                    $total_resiko = round($total_resiko);
                 @endphp
 
                 <tr>

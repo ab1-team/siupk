@@ -61,6 +61,9 @@
                                     <p class="mb-0">
                                         Masukkan <b>Username</b> dan <b>Password</b>
                                     </p>
+                                    @if (session('error'))
+                                        <p class="text-danger font-weight-bold mt-2">{{ session('error') }}</p>
+                                    @endif
                                 </div>
                                 <div class="card-body pt-1">
                                     <form role="form" method="POST" action="/login">
