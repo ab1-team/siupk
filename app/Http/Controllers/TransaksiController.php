@@ -2057,6 +2057,13 @@ class TransaksiController extends Controller
 
     public function hapus(Request $request)
     {
+        if (!(auth()->user()->level == 1 && auth()->user()->jabatan == 1)) {
+            return response()->json([
+                'success' => false,
+                'msg' => 'Hanya direktur yang boleh menghapus transaksi.'
+            ], 403);
+        }
+
         $idt = $request->del_idt;
         $idtp = $request->del_idtp;
         $id_pinj = $request->del_id_pinj;

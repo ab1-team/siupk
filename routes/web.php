@@ -312,6 +312,7 @@ Route::post('/transaksi/angsuran/cetak_bkm', [TransaksiController::class, 'cetak
 
 Route::get('/transaksi/generate_real/{id_pinkel}', [TransaksiController::class, 'generateReal'])->middleware('auth');
 Route::get('/transaksi/regenerate_real/{id_pinkel}', [TransaksiController::class, 'realisasi'])->middleware('auth');
+Route::get('/transaksi/regenerate_real_i/{id_pinj_i}', [TransaksiController::class, 'realisasii'])->middleware('auth');
 
 Route::get('/transaksi/angsuran/form_anggota/{id_pinkel}', [TransaksiController::class, 'formAnggota'])->middleware('auth');
 Route::get('/transaksi/angsuran/form_anggota_i/{id_pinkel}', [TransaksiController::class, 'formAnggotaIndividu'])->middleware('auth');

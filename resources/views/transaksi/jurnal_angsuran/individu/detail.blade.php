@@ -91,6 +91,19 @@
                             data-bs-placement="top" title="BKM" data-container="body" data-animation="true">
                             <span class="btn-inner--icon"><i class="fas fa-file-circle-exclamation"></i></span>
                         </button>
+                        @if (auth()->user()->level == 1 && auth()->user()->jabatan == 1)
+                            <button type="button"
+                                class="btn btn-danger btn-icon-only btn-tooltip btn-delete-angsuran"
+                                data-idt="{{ $idt }}"
+                                data-idtp="{{ $real_i->id }}"
+                                data-id-pinj="0"
+                                data-id-pinj-i="{{ $nia->id }}"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top" title="Hapus Transaksi" data-container="body"
+                                data-animation="true">
+                                <span class="btn-inner--icon"><i class="fas fa-trash"></i></span>
+                            </button>
+                        @endif
                     </div>
                 </td>
             </tr>

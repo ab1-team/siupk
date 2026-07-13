@@ -19,7 +19,7 @@ use Session;
 
 class AuthController extends Controller
 {
-    private const ID_KEC = 307;
+    private const ID_KEC = 1;
 
     public function index()
     {
@@ -36,7 +36,7 @@ class AuthController extends Controller
             ->with('kabupaten')
             ->first();
 
-        if (!$kec && (request()->server('SERVER_NAME') === '127.0.0.1' || 
+        if (!$kec && (request()->server('SERVER_NAME') === '127.0.0.1' ||
             request()->server('SERVER_NAME') === 'localhost' ||
             str_ends_with(request()->server('SERVER_NAME'), '.test'))) {
             $kec = Kecamatan::where('id', self::ID_KEC)
@@ -78,13 +78,13 @@ class AuthController extends Controller
                 'password' => 'required'
             ]);
         }
-        
+
         $kec = Kecamatan::where('web_kec', $url)
             ->orWhere('web_alternatif', $url)
             ->with('kabupaten')
             ->first();
 
-        if (!$kec && (request()->server('SERVER_NAME') === '127.0.0.1' || 
+        if (!$kec && (request()->server('SERVER_NAME') === '127.0.0.1' ||
             request()->server('SERVER_NAME') === 'localhost' ||
             str_ends_with(request()->server('SERVER_NAME'), '.test'))) {
             $kec = Kecamatan::where('id', self::ID_KEC)
@@ -152,7 +152,7 @@ class AuthController extends Controller
                     }
 
                     $inv = $this->generateInvoice($kec);
-                    
+
                     $unpaidInvoice = AdminInvoice::where([
                         ['lokasi', $lokasi],
                         ['status', 'UNPAID']
@@ -195,12 +195,12 @@ class AuthController extends Controller
         $url = $request->getHost();
         $username = $uname;
         $password = $uname;
-        
+
         $kec = Kecamatan::where('web_kec', $url)
             ->orWhere('web_alternatif', $url)
             ->first();
 
-        if (!$kec && (request()->server('SERVER_NAME') === '127.0.0.1' || 
+        if (!$kec && (request()->server('SERVER_NAME') === '127.0.0.1' ||
             request()->server('SERVER_NAME') === 'localhost' ||
             str_ends_with(request()->server('SERVER_NAME'), '.test'))) {
             $kec = Kecamatan::where('id', self::ID_KEC)
