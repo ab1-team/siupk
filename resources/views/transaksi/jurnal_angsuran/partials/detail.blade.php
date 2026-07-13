@@ -30,7 +30,7 @@
             <td align="right"><b>0</b></td>
             <td align="right">&nbsp;</td>
         </tr>
-        @foreach ($pinkel->real as $real)
+        @foreach ($pinkel->real->take(-1) as $real)
             @php
                 $keterangan = '';
                 $denda = 0;
