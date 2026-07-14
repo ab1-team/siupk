@@ -19,9 +19,9 @@
 
     <div class="d-flex justify-content-between align-items-center mt-3">
         <div>
-            <button type="button" id="ScanWA" class="btn btn-sm btn-info mb-0">
+            <button type="button" id="ScanWA" class="btn btn-sm btn-info mb-0" disabled>
                 <i class="material-icons text-sm me-1">qr_code_scanner</i>
-                Scan WA Gateway
+                <span class="btn-text">Scan WA Gateway</span>
             </button>
             <button type="button" id="HapusWa" class="btn btn-sm btn-danger mb-0">
                 <i class="material-icons text-sm me-1">link_off</i>

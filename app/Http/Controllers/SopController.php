@@ -13,6 +13,7 @@ use App\Utils\Tanggal;
 use DOMDocument;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -21,20 +22,19 @@ use Yajra\DataTables\DataTables;
 
 class SopController extends Controller
 {
-public function index()
+    public function index()
     {
-        $api = rtrim(config('services.wagateway.url'), '/');
-        $api_key = config('services.wagateway.api_key');
+        $api = rtrim(config('wagateway.url'), '/');
+        $api_key = config('wagateway.key');
 
         $kec = Kecamatan::where('id', Session::get('lokasi'))->with('ttd', 'wa_session')->first();
-        $token = $kec->wa_session->token ?? $kec->token;
-
-        $device_id = $kec->wa_session->device_id ?? null;
-        $device_key = $kec->wa_session->device_key ?? null;
+        $wa = $kec->wa_session;
+        $token = $wa->token ?? $kec->token;
+        $instance_token = $wa->instance_token ?? null;
 
         $title = 'Personalisasi SOP';
 
-        return view('sop.index')->with(compact('title', 'kec', 'api', 'token', 'api_key', 'device_id', 'device_key'));
+        return view('sop.index')->with(compact('title', 'kec', 'api', 'token', 'api_key', 'wa', 'instance_token'));
     }
 
     public function save_whatsapp_session(Request $request)
@@ -86,12 +86,141 @@ public function index()
             ], 422);
         }
 
+        $wa = Whatsapp::where('lokasi', $lokasi)->first();
+        if ($wa && $wa->token) {
+            $api = config('wagateway.url');
+            $api_key = config('wagateway.key');
+            try {
+                Http::withHeaders(['apikey' => $api_key])->post("{$api}/instance/logout/{$wa->token}");
+                Http::withHeaders(['apikey' => $api_key])->delete("{$api}/instance/delete/{$wa->token}");
+            } catch (\Exception $e) {
+                Log::warning('WA gateway logout failed: ' . $e->getMessage());
+            }
+        }
+
         $deleted = Whatsapp::where('lokasi', $lokasi)->delete();
 
         return response()->json([
             'success' => true,
             'deleted' => $deleted,
         ]);
+    }
+
+    public function init_whatsapp_instance(Request $request)
+    {
+        $kec = Kecamatan::findOrFail(Session::get('lokasi'));
+        $token = 'SIUPK-' . str_replace('.', '', $kec->kd_kec) . '-' . str_pad($kec->id, 4, '0', STR_PAD_LEFT);
+
+        $api = config('wagateway.url');
+        $api_key = config('wagateway.key');
+
+        $existing = Whatsapp::where('lokasi', $kec->id)->first();
+
+        try {
+            if ($existing && $existing->instance_token) {
+                $response = Http::timeout(30)->withHeaders(['apikey' => $api_key])
+                    ->get("{$api}/instance/connect/{$token}");
+            } else {
+                $response = Http::timeout(30)->withHeaders(['apikey' => $api_key])
+                    ->post("{$api}/instance/create", [
+                        'instanceName' => $token,
+                        'qrcode'       => true,
+                        'integration'  => 'WHATSAPP-BAILEYS',
+                    ]);
+            }
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gateway tidak merespons. Coba lagi beberapa saat.',
+            ], 503);
+        }
+
+        if (!$response->successful()) {
+            return response()->json(['success' => false, 'message' => 'Gateway error: ' . $response->body()]);
+        }
+
+        $data = $response->json();
+
+        $instanceToken = $data['hash'] ?? ($existing->instance_token ?? null);
+        $qrBase64 = $data['qrcode']['base64'] ?? null;
+        $pairingCode = $data['qrcode']['pairingCode'] ?? $data['pairingCode'] ?? null;
+
+        $wa = Whatsapp::updateOrCreate(
+            ['lokasi' => $kec->id],
+            [
+                'nama'           => $kec->nama_lembaga_sort ?? 'UPK',
+                'token'          => $token,
+                'instance_token' => $instanceToken,
+                'status'         => 'connecting',
+            ]
+        );
+
+        try {
+            Http::timeout(10)->withHeaders(['apikey' => $api_key])
+                ->post("{$api}/webhook/set/{$token}", [
+                    'webhook' => [
+                        'enabled'         => true,
+                        'url'             => url('/webhook/whatsapp'),
+                        'webhookByEvents' => false,
+                        'webhookBase64'   => false,
+                        'events'          => ['CONNECTION_UPDATE', 'MESSAGES_UPSERT', 'SEND_MESSAGE'],
+                    ],
+                ]);
+        } catch (\Exception $e) {
+            Log::warning('WA webhook set failed (non-critical): ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success'     => true,
+            'base64'      => $qrBase64,
+            'pairingCode' => $pairingCode,
+        ]);
+    }
+
+    public function check_whatsapp_status(Request $request, $kec_id)
+    {
+        $wa = Whatsapp::where('lokasi', $kec_id)->first();
+        if (!$wa || !$wa->token) {
+            return response()->json(['status' => 'not_registered']);
+        }
+
+        $api = config('wagateway.url');
+        $api_key = config('wagateway.key');
+
+        $response = Http::withHeaders(['apikey' => $api_key])
+            ->get("{$api}/instance/connectionState/{$wa->token}");
+
+        $state = $response->json('instance.state') ?? 'close';
+        $status = $state === 'open' ? 'connected' : 'disconnected';
+
+        if ($wa->status !== $status) {
+            $wa->update(['status' => $status]);
+        }
+
+        return response()->json(['status' => $status]);
+    }
+
+    public function webhook_evolution(Request $request)
+    {
+        $event = $request->input('event');
+        $instance = $request->input('instance');
+        $data = $request->input('data', []);
+
+        $wa = $instance ? Whatsapp::where('token', $instance)->first() : null;
+        if (!$wa) {
+            return response()->json(['ok' => true]);
+        }
+
+        if ($event === 'connection.update') {
+            $state = $data['state'] ?? null;
+            if ($state === 'open') {
+                $wa->update(['status' => 'connected']);
+            } elseif (in_array($state, ['close', 'connecting'])) {
+                $wa->update(['status' => 'disconnected']);
+            }
+        }
+
+        return response()->json(['ok' => true]);
     }
 
     public function coa()

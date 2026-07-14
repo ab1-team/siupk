@@ -163,6 +163,9 @@ Route::put('/pengaturan/calk/{kec}', [SopController::class, 'calk'])->middleware
 
 Route::post('/pengaturan/whatsapp/save_device', [SopController::class, 'save_whatsapp_session'])->middleware('auth');
 Route::post('/pengaturan/whatsapp/delete_session', [SopController::class, 'delete_whatsapp_session'])->middleware('auth');
+Route::post('/pengaturan/whatsapp/init', [SopController::class, 'init_whatsapp_instance'])->middleware('auth');
+Route::get('/pengaturan/whatsapp/status/{kec}', [SopController::class, 'check_whatsapp_status'])->middleware('auth');
+Route::post('/webhook/whatsapp', [SopController::class, 'webhook_evolution']);
 Route::post('/pengaturan/whatsapp/{token}', [SopController::class, 'whatsapp'])->middleware('auth');
 
 Route::get('/pengaturan/invoice', [SopController::class, 'invoice'])->middleware('auth');

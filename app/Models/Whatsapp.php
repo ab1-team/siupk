@@ -18,6 +18,7 @@ class Whatsapp extends Model
         'token',
         'device_id',
         'device_key',
+        'instance_token',
         'status',
         'phone_number',
         'last_seen',
