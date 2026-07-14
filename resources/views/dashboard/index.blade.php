@@ -775,16 +775,19 @@
 
             if (messages.length == 0) return
 
-            const DEVICE_ID = '{{ $wa_device_id ?? "" }}'
-            const DEVICE_KEY = '{{ $wa_device_key ?? $api_key ?? "" }}'
+            const INSTANCE_NAME = @json($wa_instance_name ?? '')
+            const INSTANCE_TOKEN = @json($wa_instance_token ?? '')
+            const KECAMATAN_ID = @json(Session::get('lokasi'))
 
             $.ajax({
                 type: 'POST',
-                url: '{{ $api }}/api/send/personalized',
-                headers: { 'x-api-key': DEVICE_KEY },
-                contentType: 'application/json',
+                url: '{{ url("/pengaturan/whatsapp/send_bulk") }}',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                },
                 data: JSON.stringify({
-                    device_id: DEVICE_ID,
+                    kecamatan_id: KECAMATAN_ID,
                     messages: messages.map(function(m) {
                         return { to: m.number, message: m.message }
                     })
@@ -801,16 +804,16 @@
     @if (Session::get('invoice'))
         <script>
             function msgInvoice(number, msg, repeat = 0) {
-                const DEVICE_ID = '{{ $wa_device_id ?? '' }}'
-                const DEVICE_KEY = '{{ $wa_device_key ?? '' }}'
+                const INSTANCE_NAME = @json($wa_instance_name ?? '')
+                const INSTANCE_TOKEN = @json($wa_instance_token ?? '')
                 $.ajax({
                     type: 'POST',
-                    url: '{{ $api }}/api/send/text',
+                    url: '{{ $api }}/message/sendText/' + INSTANCE_NAME,
                     timeout: 0,
-                    headers: { "Content-Type": "application/json", "x-api-key": DEVICE_KEY },
-                    data: JSON.stringify({ device_id: DEVICE_ID, to: number, message: msg }),
+                    headers: { "Content-Type": "application/json", "apikey": INSTANCE_TOKEN },
+                    data: JSON.stringify({ number: number, text: msg }),
                     success: function(result) {
-                        if (!result.success) {
+                        if (!result) {
                             setTimeout(function() { msgInvoice(number, msg, repeat + 1) }, 1000)
                         }
                     },

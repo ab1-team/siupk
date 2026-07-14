@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendWhatsappBulk;
 use App\Models\AdminInvoice;
 use App\Models\AkunLevel1;
 use App\Models\Kecamatan;
@@ -35,43 +36,6 @@ class SopController extends Controller
         $title = 'Personalisasi SOP';
 
         return view('sop.index')->with(compact('title', 'kec', 'api', 'token', 'api_key', 'wa', 'instance_token'));
-    }
-
-    public function save_whatsapp_session(Request $request)
-    {
-        $id = Session::get('lokasi');
-        $device_id = $request->device_id;
-        $device_key = $request->device_key;
-
-        Log::info('Saving WA Session: ', [
-            'lokasi' => $id,
-            'device_id' => $device_id,
-            'device_key' => $device_key,
-        ]);
-
-        if (! $id) {
-            return response()->json(['success' => false, 'msg' => 'Lokasi session tidak ditemukan']);
-        }
-
-        try {
-            $kec = Kecamatan::where('id', $id)->first();
-            Whatsapp::updateOrCreate(
-                ['lokasi' => $id],
-                [
-                    'nama' => $kec->nama_lembaga_sort ?? 'UPK',
-                    'token' => $kec->wa_session->token ?? $kec->token ?? '',
-                    'device_id' => $device_id,
-                    'device_key' => $device_key,
-                    'status' => 'connected',
-                ]
-            );
-
-            return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            Log::error('DB Error saving WA session: '.$e->getMessage());
-
-            return response()->json(['success' => false, 'msg' => $e->getMessage()], 500);
-        }
     }
 
     public function delete_whatsapp_session(Request $request)
@@ -221,6 +185,25 @@ class SopController extends Controller
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    public function send_bulk_whatsapp(Request $request)
+    {
+        $data = $request->validate([
+            'kecamatan_id' => 'required|integer',
+            'messages'     => 'required|array|min:1',
+            'messages.*.to'      => 'required|string',
+            'messages.*.message' => 'required|string',
+        ]);
+
+        $wa = Whatsapp::where('lokasi', $data['kecamatan_id'])->first();
+        if (! $wa || ! $wa->instance_token) {
+            return response()->json(['success' => false, 'message' => 'WA belum terhubung']);
+        }
+
+        SendWhatsappBulk::dispatch($wa->token, $wa->instance_token, $data['messages']);
+
+        return response()->json(['success' => true, 'message' => 'Pesan masuk antrian']);
     }
 
     public function coa()

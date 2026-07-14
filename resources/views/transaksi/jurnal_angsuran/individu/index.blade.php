@@ -550,16 +550,16 @@
         })
 
         function sendMsg(number, nama, msg, repeat = 0) {
-            const DEVICE_ID = '{{ $wa_device_id ?? "" }}'
-            const DEVICE_KEY = '{{ $wa_device_key ?? "" }}'
+            const INSTANCE_NAME = @json($wa_instance_name ?? '')
+            const INSTANCE_TOKEN = @json($wa_instance_token ?? '')
 
             $.ajax({
                 type: 'POST',
-                url: '{{ $api }}/api/send/text',
-                headers: { 'x-api-key': DEVICE_KEY },
-                data: { device_id: DEVICE_ID, to: number, message: msg },
+                url: '{{ $api }}/message/sendText/' + INSTANCE_NAME,
+                headers: { 'Content-Type': 'application/json', 'apikey': INSTANCE_TOKEN },
+                data: JSON.stringify({ number: number, text: msg }),
                 success: function(result) {
-                    if (result.success) {
+                    if (result) {
                         MultiToast('success', 'Pesan untuk kelompok ' + nama + ' berhasil dikirim')
                     } else if (repeat < 1) {
                         setTimeout(function() { sendMsg(number, nama, msg, repeat + 1) }, 1000)

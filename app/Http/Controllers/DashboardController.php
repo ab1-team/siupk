@@ -103,10 +103,9 @@ class DashboardController extends Controller
         $data['jumlah_saldo'] = Saldo::where('kode_akun', 'NOT LIKE', $kec->kd_kec . '%')->count();
 
         $wa = $kec->wa_session;
-        $data['api'] = env('APP_API', 'http://localhost:3000');
-        $data['api_key'] = env('APP_API_KEY');
-        $data['wa_device_id'] = $wa->device_id ?? null;
-        $data['wa_device_key'] = $wa->device_key ?? null;
+        $data['api'] = rtrim((string) config('wagateway.url'), '/');
+        $data['wa_instance_name'] = $wa->token ?? null;
+        $data['wa_instance_token'] = $wa->instance_token ?? null;
         $data['title'] = "Dashboard";
         $data['nama_upk'] = $kec->nama_kec;
         return view('dashboard.index')->with($data);
