@@ -64,10 +64,11 @@ class TransaksiController extends Controller
             $pinkel = '0';
         }
 
-        $api = rtrim((string) config('wagateway.url'), '/');
-        $wa_instance_name = $kec->wa_session->token ?? null;
-        $wa_instance_token = $kec->wa_session->instance_token ?? null;
-        return view('transaksi.jurnal_angsuran.index')->with(compact('title', 'pinkel', 'kec', 'penyetor', 'api', 'wa_instance_name', 'wa_instance_token'));
+        $api = env('APP_API', 'http://localhost:3000');
+        $api_key = env('APP_API_KEY');
+        $wa_device_id = $kec->wa_session->device_id ?? null;
+        $wa_device_key = $kec->wa_session->device_key ?? null;
+        return view('transaksi.jurnal_angsuran.index')->with(compact('title', 'pinkel', 'kec', 'penyetor', 'api', 'api_key', 'wa_device_id', 'wa_device_key'));
     }
 
     public function jurnalAngsuranIndividu()
@@ -82,10 +83,11 @@ class TransaksiController extends Controller
             $pinkel = '0';
         }
 
-        $api = rtrim((string) config('wagateway.url'), '/');
-        $wa_instance_name = $kec->wa_session->token ?? null;
-        $wa_instance_token = $kec->wa_session->instance_token ?? null;
-        return view('transaksi.jurnal_angsuran.individu.index')->with(compact('title', 'pinkel', 'kec', 'api', 'wa_instance_name', 'wa_instance_token'));
+        $api = env('APP_API', 'http://localhost:3000');
+        $api_key = env('APP_API_KEY');
+        $wa_device_id = $kec->wa_session->device_id ?? null;
+        $wa_device_key = $kec->wa_session->device_key ?? null;
+        return view('transaksi.jurnal_angsuran.individu.index')->with(compact('title', 'pinkel', 'kec', 'api', 'api_key', 'wa_device_id', 'wa_device_key'));
     }
 
     public function ebudgeting()
