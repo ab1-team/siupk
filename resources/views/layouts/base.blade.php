@@ -292,16 +292,15 @@
         @php
             $waSessionForLayout = \App\Models\Whatsapp::where('lokasi', session('lokasi'))->first();
         @endphp
-        @if ($waSessionForLayout && $waSessionForLayout->token && $waSessionForLayout->instance_token)
-            <script>
-                window.WAGATEWAY = {
-                    url:    @json(rtrim((string) config('wagateway.url'), '/')),
-                    name:   @json($waSessionForLayout->token),
-                    token:  @json($waSessionForLayout->instance_token),
-                    status: @json($waSessionForLayout->status),
-                };
-            </script>
-        @endif
+        <script>
+            window.APP_LOKASI = @json((int) session('lokasi'));
+            window.WAGATEWAY = {
+                url:    @json(rtrim((string) config('wagateway.url'), '/')),
+                name:   @json($waSessionForLayout->token ?? ''),
+                token:  @json($waSessionForLayout->instance_token ?? ''),
+                status: @json($waSessionForLayout->status ?? ''),
+            };
+        </script>
     @endif
     <script>
         var formatter = new Intl.NumberFormat('en-US', {

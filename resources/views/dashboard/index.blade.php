@@ -78,16 +78,18 @@
                             <p class="text-sm mb-1 text-capitalize font-weight-bold">Jatuh Tempo</p>
                             <h5 class="font-weight-bolder mb-0">
                                 <span id="jatuh_tempo">
-                                    <div class="spinner-border sm text-info" role="status">
+                                    <span class="jt-spinner spinner-border sm text-info" role="status">
                                         <span class="sr-only">Loading...</span>
-                                    </div>
+                                    </span>
+                                    <span class="jt-value" style="display:none">0</span>
                                 </span> Hari Ini
                             </h5>
                             <span class="font-weight-normal text-secondary text-sm">
                                 <span class="font-weight-bolder text-success" id="nunggak">
-                                    <div class="spinner-border xs text-info" role="status">
+                                    <span class="jt-spinner spinner-border xs text-info" role="status">
                                         <span class="sr-only">Loading...</span>
-                                    </div>
+                                    </span>
+                                    <span class="jt-value" style="display:none">0</span>
                                 </span> menunggak
                             </span>
                         </div>
@@ -603,12 +605,20 @@
             data: $('#defaultForm').serialize(),
             success: function(result) {
                 if (result.success) {
-                    $('#jatuh_tempo').html(result.jatuh_tempo)
+                    $('#jatuh_tempo .jt-spinner').hide()
+                    $('#jatuh_tempo .jt-value').text(result.jatuh_tempo).show()
 
                     if (result.jatuh_tempo != '00') {
                         $('#TbHariIni').html(result.hari_ini)
                     }
+                } else {
+                    $('#jatuh_tempo .jt-spinner').hide()
+                    $('#jatuh_tempo .jt-value').text('-').show()
                 }
+            },
+            error: function() {
+                $('#jatuh_tempo .jt-spinner').hide()
+                $('#jatuh_tempo .jt-value').text('-').show()
             }
         })
 
@@ -618,12 +628,20 @@
             data: $('#defaultForm').serialize(),
             success: function(result) {
                 if (result.success) {
-                    $('#nunggak').html(result.nunggak)
+                    $('#nunggak .jt-spinner').hide()
+                    $('#nunggak .jt-value').text(result.nunggak).show()
 
                     if (result.nunggak != '00') {
                         $('#TbMenunggak').html(result.table)
                     }
+                } else {
+                    $('#nunggak .jt-spinner').hide()
+                    $('#nunggak .jt-value').text('-').show()
                 }
+            },
+            error: function() {
+                $('#nunggak .jt-spinner').hide()
+                $('#nunggak .jt-value').text('-').show()
             }
         })
 
@@ -775,9 +793,9 @@
 
             if (messages.length == 0) return
 
-            const INSTANCE_NAME = @json($wa_instance_name ?? '')
-            const INSTANCE_TOKEN = @json($wa_instance_token ?? '')
-            const KECAMATAN_ID = @json(Session::get('lokasi'))
+            var INSTANCE_NAME = (window.WAGATEWAY && window.WAGATEWAY.name) || ''
+            var INSTANCE_TOKEN = (window.WAGATEWAY && window.WAGATEWAY.token) || ''
+            var KECAMATAN_ID = window.APP_LOKASI || ''
 
             $.ajax({
                 type: 'POST',
@@ -803,9 +821,10 @@
 
     @if (Session::get('invoice'))
         <script>
-            function msgInvoice(number, msg, repeat = 0) {
-                const INSTANCE_NAME = @json($wa_instance_name ?? '')
-                const INSTANCE_TOKEN = @json($wa_instance_token ?? '')
+            function msgInvoice(number, msg, repeat) {
+                repeat = repeat || 0
+                var INSTANCE_NAME = (window.WAGATEWAY && window.WAGATEWAY.name) || ''
+                var INSTANCE_TOKEN = (window.WAGATEWAY && window.WAGATEWAY.token) || ''
                 $.ajax({
                     type: 'POST',
                     url: '{{ $api }}/message/sendText/' + INSTANCE_NAME,
