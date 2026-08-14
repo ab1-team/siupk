@@ -132,7 +132,7 @@
                         </ul>
                     </li>
                     <li>
-                        Barang yang saya jaminkan kepada kelompok tersebut adalah benar-benar milik saya sendiri,
+                        Barang yang saya jaminkan adalah benar benar milik saya sendiri dan bukan milik orang lain, dan saya bersedia bertanggung jawab secara hukum apabila di kemudian hari terbukti bahwa barang jaminan tersebut bukan milik saya sendiri,
                     </li>
                     <li>
                         Saya berkewajiban merawat dan melindungi barang jaminan tersebut dan tidak akan menjual,
