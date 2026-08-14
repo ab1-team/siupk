@@ -3,17 +3,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Simpanan;
-use App\Models\Transaksi;
-use App\Models\RealSimpanan;
 use App\Models\Kecamatan;
+use App\Services\RealSimpananGenerator;
 use Session;
-use DB;
 use URL;
-use Carbon\Carbon;
 
 class GenerateBungaController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, RealSimpananGenerator $generator)
     {
         $kec = Kecamatan::where('web_kec', explode('//', URL::to('/'))[1])
             ->orWhere('web_alternatif', explode('//', URL::to('/'))[1])
@@ -37,6 +34,7 @@ class GenerateBungaController extends Controller
             $ids = collect(explode(',', $id))
                 ->map(fn($i) => trim($i))
                 ->filter(fn($i) => is_numeric($i))
+                ->map(fn($i) => (int) $i)
                 ->toArray();
         }
 
@@ -46,7 +44,6 @@ class GenerateBungaController extends Controller
 
         $total = Simpanan::whereIn('id', $ids)->count();
 
-        // Ambil batch simpanan sesuai start dan perPage
         $simpananBatch = Simpanan::whereIn('id', $ids)
             ->orderBy('id', 'ASC')
             ->skip($start)
@@ -54,56 +51,7 @@ class GenerateBungaController extends Controller
             ->get();
 
         foreach ($simpananBatch as $simpanan) {
-            RealSimpanan::where('cif', $simpanan->id)->delete();
-
-            $trx = Transaksi::where('id_simp', $simpanan->id)
-                ->whereNull('deleted_at')
-                ->orderBy('tgl_transaksi', 'ASC')
-                ->orderByRaw("CASE
-                    WHEN rekening_debit LIKE '1.1.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 0
-                    WHEN rekening_debit LIKE '5.2.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 1
-                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '1.1.01%' THEN 2
-                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '2.1.03%' THEN 3
-                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '4.1.03%' THEN 4
-                    ELSE 5
-                END")
-                ->orderBy('idt', 'ASC')
-                ->get();
-
-            $sum = 0;
-            $str = 1;
-
-            foreach ($trx as $t) {
-                $kode = $this->kodeTransaksi($t->rekening_debit, $t->rekening_kredit, $str);
-                if ($kode == 1) {
-                    $str = 2;
-                }
-
-                if (in_array($kode, [1, 2, 5])) {
-                    $real_d = 0;
-                    $real_k = $t->jumlah;
-                    $sum += $t->jumlah;
-                } elseif (in_array($kode, [3, 4, 6, 7])) {
-                    $real_d = $t->jumlah;
-                    $real_k = 0;
-                    $sum -= $t->jumlah;
-                } else {
-                    $real_d = 0;
-                    $real_k = 0;
-                }
-
-                RealSimpanan::create([
-                    'cif' => $simpanan->id,
-                    'idt' => $t->idt,
-                    'kode' => $kode,
-                    'tgl_transaksi' => $t->tgl_transaksi,
-                    'real_d' => $real_d,
-                    'real_k' => $real_k,
-                    'sum' => $sum,
-                    'lu' => Carbon::now(),
-                    'id_user' => $t->id_user,
-                ]);
-            }
+            $generator->generateForCif((int) $simpanan->id);
         }
 
         $nextStart = $start + $perPage;
@@ -115,25 +63,6 @@ class GenerateBungaController extends Controller
             'id' => $id,
             'isDone' => $nextStart > $total
         ]);
-    }
-
-    private function kodeTransaksi($rdeb, $rkre, $str)
-    {
-        if (substr($rdeb, 0, 6) == '1.1.01' && in_array(substr($rkre, 0, 6), ['2.1.05', '2.2.05']) && $str == 1) {
-            return 1; // setor awal
-        } elseif (substr($rdeb, 0, 6) == '1.1.01' && in_array(substr($rkre, 0, 6), ['2.1.05', '2.2.05'])) {
-            return 2; // setor
-        } elseif (in_array(substr($rdeb, 0, 6), ['2.1.05', '2.2.05']) && substr($rkre, 0, 6) == '1.1.01') {
-            return 3; // tarik
-        } elseif (substr($rdeb, 0, 6) == '5.2.01' && in_array(substr($rkre, 0, 6), ['2.1.05', '2.2.05'])) {
-            return 5; // bunga
-        } elseif (in_array(substr($rdeb, 0, 6), ['2.1.05', '2.2.05']) && substr($rkre, 0, 6) == '2.1.03') {
-            return 6; // pajak
-        } elseif (in_array(substr($rdeb, 0, 6), ['2.1.05', '2.2.05']) && substr($rkre, 0, 6) == '4.1.03') {
-            return 7; // admin
-        } else {
-            return 0;
-        }
     }
 }
 ?>

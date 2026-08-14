@@ -11,6 +11,7 @@ use App\Models\Simpanan;
 use App\Models\Kecamatan;
 use App\Models\Desa;
 use App\Models\Keluarga;
+use App\Models\KodeSimp;
 use App\Models\PinjamanIndividu;
 use App\Models\RealAngsuranI;
 use App\Models\RealSimpanan;
@@ -22,6 +23,7 @@ use App\Models\Transaksi;
 use App\Models\User;
 use App\Utils\Keuangan;
 use App\Utils\Pinjaman;
+use App\Services\RealSimpananGenerator;
 use App\Utils\Tanggal;
 use DB;
 use PDF;
@@ -415,10 +417,13 @@ public function cetakPadaBuku($idt)
         $transaksi->id_user = auth()->user()->id;
 
         if ($transaksi->save()) {
+            $lokasi = (int) Session::get('lokasi');
+            $kodeMutasi = $jenisMutasi == '1' ? KodeSimp::MUTASI_SETOR : KodeSimp::MUTASI_TARIK;
+            $kode = KodeSimp::resolveKode($kodeMutasi, $lokasi) ?? ($jenisMutasi == '1' ? 2 : 3);
             RealSimpanan::create([
                 'cif' => $simpanan->id,
                 'idt' => $transaksi->idt,
-                'kode' => $jenisMutasi == '1' ? "2" : "3",
+                'kode' => $kode,
                 'tgl_transaksi' => $tgl,
                 'real_d' => $jenisMutasi == '1' ? 0 : $jumlah,
                 'real_k' => $jenisMutasi == '1' ? $jumlah : 0,
@@ -434,7 +439,7 @@ public function cetakPadaBuku($idt)
     }
 
 
-    public function generateSimpanan()
+    public function generateSimpanan(RealSimpananGenerator $generator)
     {
         $lokasi = Session::get('lokasi');
 
@@ -462,173 +467,25 @@ public function cetakPadaBuku($idt)
         $simpananChunk = $simpanan->slice($start, $per_page);
 
         foreach ($simpananChunk as $simp) {
-            DB::table("real_simpanan_$lokasi")->where('cif', $simp->id)->delete();
-
-            $transaksi = DB::table("transaksi_$lokasi")
-                ->where('id_simp', $simp->id)
-                ->whereNull('deleted_at')
-                ->orderBy('tgl_transaksi', 'ASC')
-                ->orderByRaw("CASE
-                    WHEN rekening_debit LIKE '1.1.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 0
-                    WHEN rekening_debit LIKE '5.2.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 1
-                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '1.1.01%' THEN 2
-                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '2.1.03%' THEN 3
-                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '4.1.03%' THEN 4
-                    ELSE 5
-                END")
-                ->orderBy('idt', 'ASC')
-                ->get();
-
-            $sum = 0;
-            $str = 1;
-            foreach ($transaksi as $trx) {
-                $real_d = 0;
-                $real_k = 0;
-                $kode = 0;
-
-                $rdeb = $trx->rekening_debit ?? '';
-                $rkre = $trx->rekening_kredit ?? '';
-                $rdeb_prefix = substr($rdeb, 0, 6);
-                $rkre_prefix = substr($rkre, 0, 6);
-
-                $is_rek_simp_kredit = in_array($rkre_prefix, ['2.1.05', '2.2.05']);
-                $is_rek_simp_debit  = in_array($rdeb_prefix, ['2.1.05', '2.2.05']);
-                $is_kas_debit       = $rdeb_prefix === '1.1.01';
-                $is_kas_kredit      = $rkre_prefix === '1.1.01';
-                $is_bunga_debit     = $rdeb_prefix === '5.2.01';
-                $is_pajak_kredit    = $rkre_prefix === '2.1.03';
-                $is_admin_kredit    = $rkre_prefix === '4.1.03';
-
-                if ($is_kas_debit && $is_rek_simp_kredit && $str == 1) {
-                    $kode = 1; $real_k = $trx->jumlah; $sum += $trx->jumlah; $str = 2;
-                } elseif ($is_kas_debit && $is_rek_simp_kredit) {
-                    $kode = 2; $real_k = $trx->jumlah; $sum += $trx->jumlah;
-                } elseif ($is_rek_simp_debit && $is_kas_kredit) {
-                    $kode = 3; $real_d = $trx->jumlah; $sum -= $trx->jumlah;
-                } elseif ($is_bunga_debit && $is_rek_simp_kredit) {
-                    $kode = 5; $real_k = $trx->jumlah; $sum += $trx->jumlah;
-                } elseif ($is_rek_simp_debit && $is_pajak_kredit) {
-                    $kode = 6; $real_d = $trx->jumlah; $sum -= $trx->jumlah;
-                } elseif ($is_rek_simp_debit && $is_admin_kredit) {
-                    $kode = 7; $real_d = $trx->jumlah; $sum -= $trx->jumlah;
-                }
-
-                DB::table("real_simpanan_$lokasi")->insert([
-                    'cif' => $simp->id,
-                    'idt' => $trx->idt,
-                    'kode' => $kode,
-                    'tgl_transaksi' => $trx->tgl_transaksi,
-                    'real_d' => $real_d,
-                    'real_k' => $real_k,
-                    'sum' => $sum,
-                    'lu' => now(),
-                    'id_user' => $trx->id_user,
-                ]);
-            }
+            $generator->generateForCif((int) $simp->id);
         }
 
         if ($start >= $total) {
             return redirect()->route('simpanan.index')->with('success', 'Proses generate simpanan telah selesai');
         }
-        
+
         $title = 'Generate Simpanan';
         return view('simpanan.generate', compact('title', 'total', 'start', 'per_page'));
     }
-    
-    public function generateSimpanan2($cif)
+
+    public function generateSimpanan2($cif, RealSimpananGenerator $generator)
     {
         try {
-            // Hapus semua real_simpanan untuk CIF ini
-            RealSimpanan::where('cif', $cif)->delete();
-
-            // Ambil semua transaksi simpanan (kecuali yang sudah dihapus),
-            // urutkan sama persis dengan generate_simpanan.php
-            $transaksis = Transaksi::where('id_simp', $cif)
-                ->whereNull('deleted_at')
-                ->orderBy('tgl_transaksi', 'asc')
-                ->orderByRaw("CASE
-                    WHEN rekening_debit LIKE '1.1.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 0
-                    WHEN rekening_debit LIKE '5.2.01%' AND (rekening_kredit LIKE '2.1.05%' OR rekening_kredit LIKE '2.2.05%') THEN 1
-                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '1.1.01%' THEN 2
-                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '2.1.03%' THEN 3
-                    WHEN (rekening_debit LIKE '2.1.05%' OR rekening_debit LIKE '2.2.05%') AND rekening_kredit LIKE '4.1.03%' THEN 4
-                    ELSE 5
-                END")
-                ->orderBy('idt', 'asc')
-                ->get();
-
-            $sum  = 0;
-            $str  = 1; // flag untuk membedakan setor awal (kode=1) vs setor biasa (kode=2)
-
-            foreach ($transaksis as $trx) {
-                $real_d = 0;
-                $real_k = 0;
-                $kode   = 0;
-
-                $rdeb = $trx->rekening_debit;
-                $rkre = $trx->rekening_kredit;
-
-                $rkre_prefix = substr($rkre, 0, 6);
-                $rdeb_prefix = substr($rdeb, 0, 6);
-
-                $is_rek_simp_kredit = in_array($rkre_prefix, ['2.1.05', '2.2.05']);
-                $is_rek_simp_debit  = in_array($rdeb_prefix, ['2.1.05', '2.2.05']);
-                $is_kas_debit       = $rdeb_prefix === '1.1.01';
-                $is_kas_kredit      = $rkre_prefix === '1.1.01';
-                $is_bunga_debit     = $rdeb_prefix === '5.2.01';
-                $is_pajak_kredit    = $rkre_prefix === '2.1.03';
-                $is_admin_kredit    = $rkre_prefix === '4.1.03';
-
-                if ($is_kas_debit && $is_rek_simp_kredit && $str == 1) {
-                    // Setor awal
-                    $kode   = 1;
-                    $real_k = $trx->jumlah;
-                    $sum   += $trx->jumlah;
-                    $str    = 2;
-                } elseif ($is_kas_debit && $is_rek_simp_kredit) {
-                    // Setor tunai
-                    $kode   = 2;
-                    $real_k = $trx->jumlah;
-                    $sum   += $trx->jumlah;
-                } elseif ($is_rek_simp_debit && $is_kas_kredit) {
-                    // Tarik tunai
-                    $kode   = 3;
-                    $real_d = $trx->jumlah;
-                    $sum   -= $trx->jumlah;
-                } elseif ($is_bunga_debit && $is_rek_simp_kredit) {
-                    // Bunga
-                    $kode   = 5;
-                    $real_k = $trx->jumlah;
-                    $sum   += $trx->jumlah;
-                } elseif ($is_rek_simp_debit && $is_pajak_kredit) {
-                    // Pajak
-                    $kode   = 6;
-                    $real_d = $trx->jumlah;
-                    $sum   -= $trx->jumlah;
-                } elseif ($is_rek_simp_debit && $is_admin_kredit) {
-                    // Admin
-                    $kode   = 7;
-                    $real_d = $trx->jumlah;
-                    $sum   -= $trx->jumlah;
-                }
-                // kode=0 → transaksi tidak dikenali, real_d/real_k/sum tidak berubah
-
-                RealSimpanan::create([
-                    'cif'            => $cif,
-                    'idt'            => $trx->idt,
-                    'kode'           => $kode,
-                    'tgl_transaksi'  => $trx->tgl_transaksi,
-                    'real_d'         => $real_d,
-                    'real_k'         => $real_k,
-                    'sum'            => $sum,
-                    'lu'             => now(),
-                    'id_user'        => auth()->id(),
-                ]);
-            }
+            $result = $generator->generateForCif((int) $cif);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Generate real simpanan berhasil. ' . $transaksis->count() . ' transaksi diproses.'
+                'message' => 'Generate real simpanan berhasil. ' . $result['processed'] . ' transaksi diproses.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -844,10 +701,12 @@ public function cetakPadaBuku($idt)
                 $transaksi->id_user = auth()->user()->id;
 
                 if ($transaksi->save()) {
+                    $lokasi = (int) Session::get('lokasi');
+                    $kodeBunga = KodeSimp::resolveKode(KodeSimp::MUTASI_BUNGA, $lokasi) ?? 5;
                     RealSimpanan::create([
                         'cif' => $simp->id,
                         'idt' => $idmax,
-                        'kode' => 5,
+                        'kode' => $kodeBunga,
                         'tgl_transaksi' => $tgl_trans,
                         'real_d' => 0,
                         'real_k' => $bunga,
@@ -878,10 +737,12 @@ public function cetakPadaBuku($idt)
                 $transaksi->id_user = auth()->user()->id;
                 
                 if ($transaksi->save()) {
+                    $lokasi = (int) Session::get('lokasi');
+                    $kodePajak = KodeSimp::resolveKode(KodeSimp::MUTASI_PAJAK, $lokasi) ?? 6;
                     RealSimpanan::create([
                         'cif' => $simp->id,
                         'idt' => $idmax,
-                        'kode' => 6,
+                        'kode' => $kodePajak,
                         'tgl_transaksi' => $tgl_trans,
                         'real_d' => $pajak,
                         'real_k' => 0,
@@ -911,10 +772,12 @@ public function cetakPadaBuku($idt)
                 $transaksi->id_user = auth()->user()->id;
                 
                 if ($transaksi->save()) {
+                    $lokasi = (int) Session::get('lokasi');
+                    $kodeAdmin = KodeSimp::resolveKode(KodeSimp::MUTASI_ADMIN, $lokasi) ?? 7;
                     RealSimpanan::create([
                         'cif' => $simp->id,
                         'idt' => $idmax,
-                        'kode' => 7,
+                        'kode' => $kodeAdmin,
                         'tgl_transaksi' => $tgl_trans,
                         'real_d' => $admin,
                         'real_k' => 0,
@@ -1085,10 +948,12 @@ public function cetakPadaBuku($idt)
             'id_user' => auth()->user()->id,
         ]);
             $idmax = Transaksi::max('idt');
+                    $lokasi = (int) Session::get('lokasi');
+                    $kodeSetorAwal = KodeSimp::resolveKode(KodeSimp::MUTASI_SETOR_AWAL, $lokasi) ?? 1;
                     RealSimpanan::create([
                         'cif' => $maxId,
                         'idt' => $idmax,
-                        'kode' => 1,
+                        'kode' => $kodeSetorAwal,
                         'tgl_transaksi' => Tanggal::tglNasional($request->tgl_buka_rekening),
                         'real_d' => 0,
                         'real_k' => str_replace(',', '', str_replace('.00', '', $request->setoran_awal)),
@@ -1111,10 +976,11 @@ public function cetakPadaBuku($idt)
             'urutan' => '0',
             'id_user' => auth()->user()->id,
         ]);
+                    $kodeAdminBuka = KodeSimp::resolveKode(KodeSimp::MUTASI_ADMIN, $lokasi) ?? 7;
                     RealSimpanan::create([
                         'cif' => $maxId,
                         'idt' => $idmax,
-                        'kode' => 7,
+                        'kode' => $kodeAdminBuka,
                         'tgl_transaksi' => Tanggal::tglNasional($request->tgl_buka_rekening),
                         'real_d' => str_replace(',', '', str_replace('.00', '', $request->admin)),
                         'real_k' => 0,
