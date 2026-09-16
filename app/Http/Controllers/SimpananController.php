@@ -40,8 +40,13 @@ class SimpananController extends Controller
     public function index()
     {
         if (request()->ajax()) {
+            $lokasi = Session::get('lokasi');
+            $simpTable = 'simpanan_anggota_' . $lokasi;
+            $anggotaTable = 'anggota_' . $lokasi;
+
             $simpanan = Simpanan::with(['anggota', 'js', 'realSimpananTerbesar'])
-                ->orderBy('id', 'DESC');
+                ->select($simpTable . '.*')
+                ->leftJoin($anggotaTable, $simpTable . '.nia', '=', $anggotaTable . '.id');
 
             return DataTables::of($simpanan)
                 ->addColumn('nama_anggota', function ($row) {
@@ -64,6 +69,29 @@ class SimpananController extends Controller
                 })
                 ->editColumn('tgl_buka', function ($row) {
                     return date('d/m/Y', strtotime($row->tgl_buka));
+                })
+                ->order(function ($query) use ($simpTable, $anggotaTable) {
+                    if (request()->has('order')) {
+                        foreach (request()->input('order') as $order) {
+                            $columnIndex = $order['column'];
+                            $direction = $order['dir'];
+                            $columnName = request()->input("columns.$columnIndex.name");
+
+                            if (empty($columnName)) {
+                                continue;
+                            }
+
+                            if ($columnName === 'id') {
+                                $columnName = $simpTable . '.id';
+                            } elseif ($columnName === 'anggota.namadepan') {
+                                $columnName = $anggotaTable . '.namadepan';
+                            }
+
+                            $query->orderBy($columnName, $direction);
+                        }
+                    } else {
+                        $query->orderBy($simpTable . '.id', 'DESC');
+                    }
                 })
                 ->rawColumns(['status'])
                 ->make(true);
@@ -649,11 +677,11 @@ public function cetakPadaBuku($idt)
             $pajak = 0;
 
             if ($kec->min_bunga <= $saldo) {
-                $bunga = number_format($saldo * $simp->bunga/100, 0, '.', '');
+                $bunga = (float) number_format($saldo * $simp->bunga/100, 2, '.', '');
             }
-        
+
             if ($kec->min_pajak <= $bunga) {
-                $pajak = number_format($bunga * $simp->pajak/100, 0, '.', '');
+                $pajak = (float) number_format($bunga * $simp->pajak/100, 2, '.', '');
             }
             $admin = $simp->admin;
 
@@ -684,7 +712,7 @@ public function cetakPadaBuku($idt)
 
             if (!$bungaExists && $bunga > 0) {
                 $idmax++;
-                $sum_baru = $realSimpanan ? $realSimpanan->sum + $bunga : $bunga;
+                $sum_baru = $realSimpanan ? (float) $realSimpanan->sum + $bunga : $bunga;
 
                 $transaksi = new Transaksi();
                 $transaksi->tgl_transaksi = Tanggal::tglNasional($tgl_trans);
@@ -720,7 +748,7 @@ public function cetakPadaBuku($idt)
             // pajak
             if (!$pajakExists && $pajak > 0) {
                 $idmax++;
-                $sum_baru = $realSimpanan ? $realSimpanan->sum - $pajak : $pajak;
+                $sum_baru = $realSimpanan ? (float) $realSimpanan->sum - $pajak : $pajak;
 
                 $transaksi = new Transaksi();
                 $transaksi->tgl_transaksi = Tanggal::tglNasional($tgl_trans);
@@ -755,7 +783,7 @@ public function cetakPadaBuku($idt)
             // admin
             if (!$adminExists && $admin > 0) {
                 $idmax++;
-                $sum_baru = $realSimpanan ? $realSimpanan->sum - $admin : $admin;
+                $sum_baru = $realSimpanan ? (float) $realSimpanan->sum - $admin : $admin;
 
                 $transaksi = new Transaksi();
                 $transaksi->tgl_transaksi = Tanggal::tglNasional($tgl_trans);
