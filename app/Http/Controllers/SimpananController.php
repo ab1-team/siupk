@@ -806,7 +806,7 @@ public function cetakPadaBuku($idt)
                 $transaksi->jumlah = $admin;
                 $transaksi->urutan = 0;
                 $transaksi->id_user = auth()->user()->id;
-                
+
                 if ($transaksi->save()) {
                     $lokasi = (int) Session::get('lokasi');
                     $kodeAdmin = KodeSimp::resolveKode(KodeSimp::MUTASI_ADMIN, $lokasi) ?? 7;
@@ -823,15 +823,24 @@ public function cetakPadaBuku($idt)
                     ]);
                 }
             }
+
+            try {
+                app(RealSimpananGenerator::class)->generateForCif((int) $simp->id);
+            } catch (\Exception $e) {
+                \Log::error('Auto regenerate real_simpanan gagal di simpanBunga', [
+                    'cif' => $simp->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $link = request()->url('');
         $query = request()->query();
-    
-        if ($query['id'] == "" || $query['id'] == NULL) {
+
+        if (!isset($query['id']) || $query['id'] == "" || $query['id'] == NULL) {
             $query['id'] = 0;
         }
-    
+
         $query['start'] = $start + 30;
         $next = $link . '?' . http_build_query($query);
 
