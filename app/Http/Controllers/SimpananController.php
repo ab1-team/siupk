@@ -438,6 +438,15 @@ public function cetakPadaBuku($idt)
 
         $sum_baru = $realSimpanan ? ($realSimpanan->sum - ($jenisMutasi == '1' ? 0 : $jumlah) + ($jenisMutasi == '1' ? $jumlah : 0)) : $jumlah;
 
+        $saldoMinimal = (float) $jenisSimpanan->saldo_minimal;
+        if ($jenisMutasi == '2' && $sum_baru < $saldoMinimal) {
+            $formattedSaldo = number_format($saldoMinimal, 0, ',', '.');
+            return response()->json([
+                'success' => false,
+                'message' => "Saldo setelah penarikan tidak boleh kurang dari saldo minimal ({$formattedSaldo}). Transaksi dibatalkan."
+            ]);
+        }
+
         $transaksi = new Transaksi();
         $transaksi->tgl_transaksi = Tanggal::tglNasional($tglTransaksi);
         $transaksi->rekening_debit = $jenisMutasi == '1' ? $jenisSimpanan->rek_kas : $jenisSimpanan->rek_simp;

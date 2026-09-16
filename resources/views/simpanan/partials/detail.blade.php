@@ -88,6 +88,13 @@
                                         </div>
                                         <small class="text-danger" id="msg_jenis_mutasi"></small>
                                     </div>
+                                    <div class="alert alert-info py-2 px-3 mb-0" role="alert">
+                                        <small>
+                                            <i class="fa fa-info-circle"></i>
+                                            Saldo minimal penarikan:
+                                            <strong>Rp {{ number_format($nia->js->saldo_minimal ?? 20000, 0, ',', '.') }}</strong>
+                                        </small>
+                                    </div>
                                     <div class="input-group input-group-static my-3">
                                         <label for="jumlah">Jumlah (Rp.)</label>
                                         <input autocomplete="off" type="text" name="jumlah" id="jumlah" class="form-control" value="">
