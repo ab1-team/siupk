@@ -116,7 +116,11 @@ class SimpananController extends Controller
             $transaksiQuery->whereMonth('tgl_transaksi', $bulan);
         }
 
-        $transaksi = $transaksiQuery->with('realSimpanan')->orderBy('tgl_transaksi', 'asc')->get();
+        $transaksi = $transaksiQuery->with('realSimpanan')
+            ->orderBy('tgl_transaksi', 'asc')
+            ->orderBy('urutan', 'asc')
+            ->orderBy('idt', 'asc')
+            ->get();
 
         $transaksi->each(function ($item) {
             $item->ins = User::where('id', $item->id_user)->value('ins');
