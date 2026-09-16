@@ -322,7 +322,11 @@ class SimpananController extends Controller
             $transaksiQuery->whereMonth('tgl_transaksi', $bulankop);
         }
 
-        $transaksi  = $transaksiQuery->orderBy('tgl_transaksi', 'asc')->get();
+        $transaksi  = $transaksiQuery
+            ->orderBy('tgl_transaksi', 'asc')
+            ->orderBy('urutan', 'asc')
+            ->orderBy('idt', 'asc')
+            ->get();
 
         $title = 'Cetak Rekening Koran ' . $simpanan->anggota->namadepan;
 
