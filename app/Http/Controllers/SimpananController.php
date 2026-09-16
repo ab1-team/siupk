@@ -65,7 +65,7 @@ class SimpananController extends Controller
                 })
                 ->editColumn('jumlah', function ($row) {
                     $jumlah = $row->realSimpananTerbesar->sortByDesc('id')->first()->sum ?? 0;
-                    return 'Rp ' . number_format($jumlah, 0, ',', '.');
+                    return 'Rp ' . number_format($jumlah, 2, ',', '.');
                 })
                 ->editColumn('tgl_buka', function ($row) {
                     return date('d/m/Y', strtotime($row->tgl_buka));

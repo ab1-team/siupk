@@ -169,7 +169,7 @@ class KodeMutasiClassifier
      *
      * @return array [kode, real_d, real_k, sum, str]
      */
-    public function classify(object $trx, object $jenisSimpanan, int $str, int $lokasi, int $sum): array
+    public function classify(object $trx, object $jenisSimpanan, int $str, int $lokasi, float $sum): array
     {
         $rdeb = $trx->rekening_debit ?? '';
         $rkre = $trx->rekening_kredit ?? '';
@@ -185,14 +185,15 @@ class KodeMutasiClassifier
                 $kode = 0;
             }
 
+            $jumlah = round((float) $trx->jumlah, 2);
             $real_d = 0;
             $real_k = 0;
             if ($rule['direction'] === 'masuk') {
-                $real_k = $trx->jumlah;
-                $sum   += $trx->jumlah;
+                $real_k = $jumlah;
+                $sum   = round($sum + $jumlah, 2);
             } else {
-                $real_d = $trx->jumlah;
-                $sum   -= $trx->jumlah;
+                $real_d = $jumlah;
+                $sum   = round($sum - $jumlah, 2);
             }
 
             if ($idMutasi === KodeSimp::MUTASI_SETOR_AWAL) {

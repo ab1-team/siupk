@@ -43,7 +43,7 @@ class RealSimpananGenerator
                 ->orderBy('idt', 'ASC')
                 ->get();
 
-            $sum = 0;
+            $sum = 0.0;
             $str = 1;
             $processed = 0;
             $classifier = new KodeMutasiClassifier();
@@ -56,9 +56,9 @@ class RealSimpananGenerator
                     'idt'           => $trx->idt,
                     'kode'          => $kode,
                     'tgl_transaksi' => $trx->tgl_transaksi,
-                    'real_d'        => $real_d,
-                    'real_k'        => $real_k,
-                    'sum'           => $sum,
+                    'real_d'        => round((float) $real_d, 2),
+                    'real_k'        => round((float) $real_k, 2),
+                    'sum'           => round((float) $sum, 2),
                     'lu'            => now(),
                     'id_user'       => $trx->id_user ?? null,
                 ]);
@@ -78,7 +78,7 @@ class RealSimpananGenerator
         });
     }
 
-    protected function classify(object $trx, object $jenisSimpanan, int $str, int $lokasi, int $sum): array
+    protected function classify(object $trx, object $jenisSimpanan, int $str, int $lokasi, float $sum): array
     {
         return (new KodeMutasiClassifier())->classify($trx, $jenisSimpanan, $str, $lokasi, $sum);
     }
