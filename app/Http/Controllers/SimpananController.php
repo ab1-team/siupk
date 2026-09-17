@@ -29,6 +29,7 @@ use DB;
 use PDF;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\DataTables;
 use DNS1D;
@@ -226,26 +227,24 @@ class SimpananController extends Controller
 
     public function register($id_angg)
     {
-        $anggota = Anggota::where('id', $id_angg)->with([
-            'pinjaman' => function ($query) {
-                $query->orderBy('tgl_proposal', 'DESC');
-            },
-            'pinjaman.sts'
-        ])->first();
-        $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
-        $jenis_jasa = JenisJasa::all();
-        $sistem_angsuran = SistemAngsuran::all();
-        $js = JenisSimpanan::where(function ($query) use ($kec) {
-            $query->where('lokasi', '0')
-                ->orWhere(function ($query) use ($kec) {
-                    $query->where('kecuali', 'NOT LIKE', "%-{$kec['id']}-%")
-                        ->where('lokasi', 'LIKE', "%-{$kec['id']}-%");
-                });
-        })->get();
+        $anggota = Anggota::where('id', $id_angg)->with(['d.sebutan_desa'])->first();
+        $kec_id = Session::get('lokasi');
+        $kec = Cache::remember('kecamatan_'.$kec_id, 600, function () use ($kec_id) {
+            return Kecamatan::where('id', $kec_id)->first();
+        });
+        $js = Cache::remember('jenis_simpanan_filtered_'.$kec_id, 600, function () use ($kec) {
+            return JenisSimpanan::where(function ($query) use ($kec) {
+                $query->where('lokasi', '0')
+                    ->orWhere(function ($query) use ($kec) {
+                        $query->where('kecuali', 'NOT LIKE', "%-{$kec['id']}-%")
+                            ->where('lokasi', 'LIKE', "%-{$kec['id']}-%");
+                    });
+            })->get();
+        });
 
         $js_dipilih = $anggota->jenis_produk_pinjaman;
 
-        return view('simpanan.partials.register')->with(compact('anggota', 'kec', 'jenis_jasa', 'sistem_angsuran', 'js', 'js_dipilih'));
+        return view('simpanan.partials.register')->with(compact('anggota', 'kec', 'js', 'js_dipilih'));
     }
 
     public function jenis_simpanan($id, Request $request)
