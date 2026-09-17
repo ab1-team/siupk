@@ -1115,6 +1115,9 @@ class PinjamanIndividuController extends Controller
         $data['report'] = $file;
         $data['type'] = $report[1];
 
+        $data['kategori_dokumen'] = $request->status == 'P' ? 'proposal' : 'pencairan';
+        $data['spk_no'] = PinjamanIndividu::where('id', $request->id)->value('spk_no');
+
         return $this->$file($request->id, $data);
     }
 

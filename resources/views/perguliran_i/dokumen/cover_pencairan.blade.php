@@ -110,6 +110,9 @@
                     <div style="font-size: 10px; color: grey;">
                         <i>{{ $email }}</i>
                     </div>
+                    <div style="font-size: 10px; color: grey; font-style: italic; margin-top: 6px;">
+                        Dokumen ini merupakan bagian tak terpisahkan dari SPK Nomor {{ $pinkel->spk_no }}
+                    </div>
 
                 </td>
             </tr>

@@ -1169,6 +1169,9 @@ class PinjamanKelompokController extends Controller
         $data['report'] = $file;
         $data['type'] = $report[1];
 
+        $data['kategori_dokumen'] = $request->status == 'P' ? 'proposal' : 'pencairan';
+        $data['spk_no'] = PinjamanKelompok::where('id', $request->id)->value('spk_no');
+
         if ($file == 'kartuAngsuranAnggota') {
             return $this->$file($request->id);
         }

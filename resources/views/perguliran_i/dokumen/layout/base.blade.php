@@ -160,6 +160,12 @@
         @yield('content')
     </main>
 
+    @if (($kategori_dokumen ?? null) == 'pencairan' && !empty($spk_no ?? null))
+        <footer style="font-size: 9px; text-align: center; font-style: italic;">
+            Dokumen ini merupakan bagian tak terpisahkan dari SPK Nomor {{ $spk_no }}
+        </footer>
+    @endif
+
 </body>
 
 </html>

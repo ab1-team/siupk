@@ -382,6 +382,9 @@
                 </tr>
             </table>
         </main>
+        <div style="font-size: 9px; text-align: center; font-style: italic; padding-top: 10px;">
+            Dokumen ini merupakan bagian tak terpisahkan dari SPK Nomor {{ $pinkel->spk_no }}
+        </div>
     @endforeach
 </body>
 

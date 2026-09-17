@@ -109,6 +109,9 @@
                     <div style="font-size: 10px; color: grey; margin-top: 10px;">
                         <i>Tahun {{ date('Y') }}</i>
                     </div>
+                    <div style="font-size: 10px; color: grey; font-style: italic; margin-top: 6px;">
+                        Dokumen ini merupakan bagian tak terpisahkan dari SPK Nomor {{ $pinkel->spk_no }}
+                    </div>
                 </td>
             </tr>
         </table>
