@@ -235,6 +235,8 @@ Route::post('/perguliran/tidak_layak/{id}', [PinjamanKelompokController::class, 
 Route::get('/register_proposal_i', [PinjamanIndividuController::class, 'create'])->middleware('auth');
 Route::get('/register_proposal_i/{nia}', [PinjamanIndividuController::class, 'register'])->middleware('auth');
 Route::get('/register_proposal_i/jaminan/{id}', [PinjamanIndividuController::class, 'Jaminan'])->middleware('auth');
+Route::get('/perguliran_i/{perguliran_i}/form-jaminan', [PinjamanIndividuController::class, 'formJaminan'])->middleware('auth');
+Route::put('/perguliran_i/{perguliran_i}/jaminan', [PinjamanIndividuController::class, 'updateJaminan'])->middleware('auth');
 Route::get('/daftar_individu', [PinjamanIndividuController::class, 'DaftarAnggota'])->middleware('auth');
 Route::get('/daftar_individu_s', [PinjamanIndividuController::class, 'DaftarAnggota'])->middleware('auth');
 

@@ -292,12 +292,109 @@ class PinjamanIndividuController extends Controller
         return view('pinjaman_i.partials.register')->with(compact('anggota', 'kec', 'jenis_jasa', 'sistem_angsuran', 'jenis_pp', 'jenis_pp_dipilih', 'jaminan'));
     }
 
-    public function Jaminan($id)
+    public function Jaminan($id, Request $request)
     {
+        $jaminan = [];
+        $jenis_jaminan = $id;
+
+        if ($request->has('id_pinj_i')) {
+            $pinj_i = PinjamanIndividu::where('id', $request->id_pinj_i)->first();
+            if ($pinj_i && $pinj_i->jaminan) {
+                $decoded = json_decode($pinj_i->jaminan, true);
+                if (is_array($decoded)) {
+                    $jaminan = $decoded;
+                    if (isset($decoded['jenis_jaminan'])) {
+                        $jenis_jaminan = $decoded['jenis_jaminan'];
+                    }
+                }
+            }
+        } else {
+            $jenis_jaminan = $id;
+        }
+
+        $view = $request->has('id_pinj_i')
+            ? view('perguliran_i.partials.jaminan_fields')->with(compact('id', 'jaminan'))->render()
+            : view('pinjaman_i.partials.jaminan')->with(compact('id'))->render();
+
         return response()->json([
             'success' => true,
-            'view' => view('pinjaman_i.partials.jaminan')->with(compact('id'))->render()
+            'view' => $view
         ]);
+    }
+
+    public function formJaminan(PinjamanIndividu $perguliran_i)
+    {
+        if (!in_array($perguliran_i->status, ['P', 'V'])) {
+            return response()->json([
+                'success' => false,
+                'msg' => 'Jaminan hanya dapat diedit pada status Proposal (P) atau Verifikasi (V).'
+            ], Response::HTTP_ACCEPTED);
+        }
+
+        $jaminan = [];
+        $jenis_jaminan = '1';
+
+        if ($perguliran_i->jaminan) {
+            $decoded = json_decode($perguliran_i->jaminan, true);
+            if (is_array($decoded)) {
+                $jaminan = $decoded;
+                $jenis_jaminan = $decoded['jenis_jaminan'] ?? '1';
+            }
+        }
+
+        $jenis_nama = [
+            '1' => 'Surat Tanah',
+            '2' => 'BPKB',
+            '3' => 'SK. Pegawai',
+            '4' => 'Lain Lain',
+        ];
+
+        return response()->json([
+            'success' => true,
+            'view' => view('perguliran_i.partials.jaminan', [
+                'id' => $jenis_jaminan,
+                'jaminan' => $jaminan,
+                'jenis_jaminan' => $jenis_jaminan,
+                'jenis_jaminan_nama' => $jenis_nama[$jenis_jaminan] ?? $jenis_jaminan
+            ])->render(),
+            'jenis_jaminan' => $jenis_jaminan
+        ]);
+    }
+
+    public function updateJaminan(Request $request, PinjamanIndividu $perguliran_i)
+    {
+        if (!in_array($perguliran_i->status, ['P', 'V'])) {
+            return response()->json([
+                'success' => false,
+                'msg' => 'Jaminan hanya dapat diedit pada status Proposal (P) atau Verifikasi (V).'
+            ], Response::HTTP_ACCEPTED);
+        }
+
+        $validate = Validator::make($request->all(), [
+            'jenis_jaminan' => 'required|in:1,2,3,4',
+            'data_jaminan' => 'required|array',
+            'data_jaminan.*' => 'required'
+        ]);
+
+        if ($validate->fails()) {
+            return response()->json($validate->errors(), Response::HTTP_MOVED_PERMANENTLY);
+        }
+
+        $jaminan = [];
+        foreach ($request->data_jaminan as $key => $val) {
+            $val = (Keuangan::startWith($key, 'nilai')) ? str_replace(',', '', str_replace('.00', '', $val)) : $val;
+            $jaminan[$key] = $val;
+        }
+        $jaminan['jenis_jaminan'] = $request->jenis_jaminan;
+
+        PinjamanIndividu::where('id', $perguliran_i->id)->update([
+            'jaminan' => json_encode($jaminan)
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'msg' => 'Jaminan berhasil diperbarui.'
+        ], Response::HTTP_ACCEPTED);
     }
 
     /**
@@ -340,6 +437,9 @@ class PinjamanIndividuController extends Controller
             $val = (Keuangan::startWith($key, 'nilai')) ? str_replace(',', '', str_replace('.00', '', $val)) : $val;
 
             $jaminan[$key] = $val;
+        }
+        if ($request->filled('jaminan')) {
+            $jaminan['jenis_jaminan'] = $request->jaminan;
         }
 
         $insert = [
@@ -446,7 +546,17 @@ class PinjamanIndividuController extends Controller
             $pinj_aktif = $pinj_i_aktif;
         }
 
-        return view('perguliran_i.partials/' . $view)->with(compact('perguliran_i', 'jenis_jasa', 'sistem_angsuran', 'sumber_bayar', 'debet', 'pinj_aktif'));
+        $jaminan = [];
+        $jenis_jaminan = '1';
+        if ($perguliran_i->jaminan) {
+            $decoded = json_decode($perguliran_i->jaminan, true);
+            if (is_array($decoded)) {
+                $jaminan = $decoded;
+                $jenis_jaminan = $decoded['jenis_jaminan'] ?? '1';
+            }
+        }
+
+        return view('perguliran_i.partials/' . $view)->with(compact('perguliran_i', 'jenis_jasa', 'sistem_angsuran', 'sumber_bayar', 'debet', 'pinj_aktif', 'jaminan', 'jenis_jaminan'));
     }
 
     public function detail(PinjamanIndividu $perguliran_i)
@@ -740,6 +850,17 @@ class PinjamanIndividuController extends Controller
             if ($request->status == 'V') {
                 $update['catatan_verifikasi'] = $data['catatan_verifikasi'];
             }
+        }
+
+        if (in_array($request->status, ['V', 'W']) && $request->has('data_jaminan') && $request->has('jenis_jaminan')) {
+            $new_jaminan = [];
+            foreach ($request->data_jaminan as $key => $val) {
+                $val = (Keuangan::startWith($key, 'nilai')) ? str_replace(',', '', str_replace('.00', '', $val)) : $val;
+                $new_jaminan[$key] = $val;
+            }
+            $new_jaminan['jenis_jaminan'] = $request->jenis_jaminan;
+
+            $update['jaminan'] = json_encode($new_jaminan);
         }
 
         $pinj_i = PinjamanIndividu::where('id', $perguliran_i->id)->update($update);

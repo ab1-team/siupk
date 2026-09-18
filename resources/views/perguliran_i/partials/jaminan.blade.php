@@ -1,197 +1,64 @@
-@if ($id == '1')
-        <div class="row">
-            <div class="col-md-6">
-                <div class="position-relative mb-3">
-                    <label for="nomor_sertifikat" class="form-label">Nomor Sertifikat</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nomor_sertifikat]" value="{{ isset($jaminan['nomor_sertifikat']) ? $jaminan['nomor_sertifikat'] : '' }}" id="nomor_sertifikat"
-                    class="form-control">
-                    <small class="text-danger" id="msg_nomor_sertifikat"></small>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="position-relative mb-3">
-                    <label for="nama_pemilik" class="form-label">Nama Pemilik</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nama_pemilik]" value="{{ isset($jaminan['nama_pemilik']) ? $jaminan['nama_pemilik'] : '' }}" id="nama_pemilik"
-                    class="form-control">
-                    <small class="text-danger" id="msg_nama_pemilik"></small>
-                </div>
+<div class="jaminan-partial-wrapper">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="input-group input-group-static my-3">
+                <label for="jenis_jaminan">Jenis Jaminan</label>
+                <select class="form-control" name="jenis_jaminan" id="jenis_jaminan" style="border: 1px solid #d4d4d4; border-radius: 6px;">
+                    <option value="1" {{ isset($jenis_jaminan) && $jenis_jaminan == '1' ? 'selected' : '' }}>Surat Tanah</option>
+                    <option value="2" {{ isset($jenis_jaminan) && $jenis_jaminan == '2' ? 'selected' : '' }}>BPKB</option>
+                    <option value="3" {{ isset($jenis_jaminan) && $jenis_jaminan == '3' ? 'selected' : '' }}>SK. Pegawai</option>
+                    <option value="4" {{ isset($jenis_jaminan) && $jenis_jaminan == '4' ? 'selected' : '' }}>Lain Lain</option>
+                </select>
+                <small class="text-danger" id="msg_jenis_jaminan"></small>
             </div>
         </div>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="alamat" class="form-label">Alamat</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[alamat]" value="{{ isset($jaminan['alamat']) ? $jaminan['alamat'] : '' }}" id="alamat" class="form-control">
-                    <small class="text-danger" id="msg_alamat"></small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="luas" class="form-label">Luas (m²)</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[luas]" value="{{ isset($jaminan['luas']) ? $jaminan['luas'] : '' }}" id="luas" class="form-control">
-                    <small class="text-danger" id="msg_luas"></small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="nilai_jual_tanah" class="form-label">Nilai Jual Tanah</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nilai_jual_tanah]" value="{{ isset($jaminan['nilai_jual_tanah']) ? $jaminan['nilai_jual_tanah'] : '' }}" id="nilai_jual_tanah"
-                        class="form-control">
-                    <small class="text-danger" id="msg_nilai_jual_tanah"></small>
-                </div>
-            </div>
-        </div>
-        <script>
-            $("#nilai_jual_tanah").maskMoney();
-        </script>
+    </div>
 
-    <script>
-        $("#nilai_jual_tanah").maskMoney();
-    </script>
-@elseif ($id == '2')
-        <div class="row">
-            <div class="col-md-6">
-                <div class="position-relative mb-3">
-                    <label for="nomor" class="form-label">Nomor</label>
-                        <input autocomplete="off" type="text" name="data_jaminan[nomor]" value="{{ isset($jaminan['nomor']) ? $jaminan['nomor'] : '' }}" id="nomor" class="form-control">
-                        <small class="text-danger" id="msg_nomor"></small>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="position-relative mb-3">
-                    <label for="nama_pemilik" class="form-label">Nama Pemilik</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nama_pemilik]" value="{{ isset($jaminan['nama_pemilik']) ? $jaminan['nama_pemilik'] : '' }}" id="nama_pemilik"
-                    class="form-control">
-                    <small class="text-danger" id="msg_nama_pemilik"></small>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="jenis_kendaraan" class="form-label">Jenis Kendaraan</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[jenis_kendaraan]" value="{{ isset($jaminan['jenis_kendaraan']) ? $jaminan['jenis_kendaraan'] : '' }}" id="jenis_kendaraan"
-                    class="form-control">
-                    <small class="text-danger" id="msg_jenis_kendaraan"></small>  
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="nopol" class="form-label">Nopol</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nopol]" value="{{ isset($jaminan['nopol']) ? $jaminan['nopol'] : '' }}" id="nopol" class="form-control">
-                    <small class="text-danger" id="msg_nopol"></small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="nilai_jual_kendaraan" class="form-label">Nilai Jual Kendaraan</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nilai_jual_kendaraan]" value="{{ isset($jaminan['nilai_jual_kendaraan']) ? $jaminan['nilai_jual_kendaraan'] : '' }}" id="nilai_jual_kendaraan"
-                    class="form-control">
-                    <small class="text-danger" id="msg_nilai_jual_kendaraan"></small>   
-                </div>
-            </div>
-        </div>
-        <script>
-            $("#nilai_jual_kendaraan").maskMoney();
-        </script>
-@elseif ($id == '3')
-        <div class="row">
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="nomor" class="form-label">Nomor</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nomor]" value="{{ isset($jaminan['nomor']) ? $jaminan['nomor'] : '' }}" id="nomor"
-                    class="form-control">
-                    <small class="text-danger" id="msg_nomor"></small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="nama_pegawai" class="form-label">Nama Pegawai</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nama_pegawai]" value="{{ isset($jaminan['nama_pegawai']) ? $jaminan['nama_pegawai'] : '' }}" id="nama_pegawai"
-                    class="form-control">
-                    <small class="text-danger" id="msg_nama_pegawai"></small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="nama_kuitansi_penerbit" class="form-label">Nama Instansi Penerbit</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nama_kuitansi_penerbit]" value="{{ isset($jaminan['nama_kuitansi_penerbit']) ? $jaminan['nama_kuitansi_penerbit'] : '' }}"
-                    id="nama_kuitansi_penerbit" class="form-control">
-                    <small class="text-danger" id="msg_nama_kuitansi_penerbit"></small>
-                </div>
-            </div>
-        </div>
-@elseif ($id == '4')
-        <div class="row">
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="nama_jaminan" class="form-label">Nama Jaminan</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nama_jaminan]" value="{{ isset($jaminan['nama_jaminan']) ? $jaminan['nama_jaminan'] : '' }}" id="nama_jaminan"
-                    class="form-control">
-                    <small class="text-danger" id="msg_nama_jaminan"></small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="keterangan" class="form-label">Keterangan</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[keterangan]" value="{{ isset($jaminan['keterangan']) ? $jaminan['keterangan'] : '' }}" id="keterangan"
-                    class="form-control">
-                    <small class="text-danger" id="msg_keterangan"></small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="nilai_jaminan" class="form-label">Nilai Jaminan</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nilai_jaminan]" value="{{ isset($jaminan['nilai_jaminan']) ? $jaminan['nilai_jaminan'] : '' }}" id="nilai_jaminan"
-                    class="form-control">
-                    <small class="text-danger" id="msg_nilai_jaminan"></small>
-                </div>
-            </div>
-        </div>
-        <script>
-            $("#nilai_jaminan").maskMoney();
-        </script>
-@else
-        <div class="row">
-            <div class="col-md-6">
-                <div class="position-relative mb-3">
-                    <label for="nomor_sertifikat" class="form-label">Nomor Sertifikat</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nomor_sertifikat]" value="{{ isset($jaminan['nomor_sertifikat']) ? $jaminan['nomor_sertifikat'] : '' }}" id="nomor_sertifikat"
-                    class="form-control">
-                    <small class="text-danger" id="msg_nomor_sertifikat"></small>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="position-relative mb-3">
-                    <label for="nama_pemilik" class="form-label">Nama Pemilik</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nama_pemilik]" value="{{ isset($jaminan['nama_pemilik']) ? $jaminan['nama_pemilik'] : '' }}" id="nama_pemilik"
-                    class="form-control">
-                    <small class="text-danger" id="msg_nama_pemilik"></small>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="alamat" class="form-label">Alamat</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[alamat]" value="{{ isset($jaminan['alamat']) ? $jaminan['alamat'] : '' }}" id="alamat" class="form-control">
-                    <small class="text-danger" id="msg_alamat"></small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="luas" class="form-label">Luas (m²)</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[luas]" value="{{ isset($jaminan['luas']) ? $jaminan['luas'] : '' }}" id="luas" class="form-control">
-                    <small class="text-danger" id="msg_luas"></small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="position-relative mb-3">
-                    <label for="nilai_jual_tanah" class="form-label">Nilai Jual Tanah</label>
-                    <input autocomplete="off" type="text" name="data_jaminan[nilai_jual_tanah]" value="{{ isset($jaminan['nilai_jual_tanah']) ? $jaminan['nilai_jual_tanah'] : '' }}" id="nilai_jual_tanah"
-                        class="form-control">
-                    <small class="text-danger" id="msg_nilai_jual_tanah"></small>
-                </div>
-            </div>
-        </div>
-@endif
+    <div id="formJaminanWrapper" class="mt-2">
+        @include('perguliran_i.partials.jaminan_fields', ['id' => $id, 'jaminan' => $jaminan ?? []])
+    </div>
+</div>
+
+<script>
+    (function() {
+        var wrapper = document.querySelector('.jaminan-partial-wrapper').parentNode;
+
+        function initMaskMoneyJaminan() {
+            if (typeof $ !== 'undefined' && typeof $.fn.maskMoney === 'function') {
+                wrapper.querySelectorAll('#nilai_jual_tanah, #nilai_jual_kendaraan, #nilai_jaminan').forEach(function(el) {
+                    if (typeof $(el).data('maskMoney') === 'undefined') {
+                        $(el).maskMoney();
+                    }
+                });
+            }
+        }
+
+        initMaskMoneyJaminan();
+
+        var select = wrapper.querySelector('#jenis_jaminan');
+        if (select && !select.dataset.bound) {
+            select.dataset.bound = '1';
+            select.addEventListener('change', function() {
+                var id = this.value;
+                if (!id) return;
+                var idPinjI = '';
+                var idInput = wrapper.parentNode.querySelector('input[name="_id_jaminan"]')
+                    || wrapper.querySelector('input[name="_id_jaminan"]');
+                if (idInput) idPinjI = idInput.value;
+                var url = '/register_proposal_i/jaminan/' + id + (idPinjI ? '?id_pinj_i=' + idPinjI : '') + '&_t=' + Date.now();
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(result) {
+                        if (result && result.success) {
+                            var wrap = wrapper.querySelector('#formJaminanWrapper');
+                            if (wrap) {
+                                wrap.innerHTML = result.view;
+                                initMaskMoneyJaminan();
+                            }
+                        }
+                    })
+                    .catch(function(err) { console.error('Jaminan fetch error:', err); });
+            });
+        }
+    })();
+</script>

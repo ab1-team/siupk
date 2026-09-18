@@ -168,7 +168,14 @@
         <div class="card mb-3">
             <div class="card-body p-2 pb-0">
                 <button type="button" class="btn btn-success btn-sm mb-2" id="BtnEditProposal">Edit Proposal</button>
+                <button type="button" class="btn btn-warning btn-sm mb-2" id="BtnEditJaminan">Edit Jaminan</button>
                 <button type="button" id="HapusProposal" class="btn btn-danger btn-sm mb-2">Hapus Proposal</button>
+            </div>
+        </div>
+    @elseif ($perguliran_i->status == 'V')
+        <div class="card mb-3">
+            <div class="card-body p-2 pb-0">
+                <button type="button" class="btn btn-warning btn-sm mb-2" id="BtnEditJaminan">Edit Jaminan</button>
             </div>
         </div>
     @endif
@@ -198,6 +205,34 @@
                     </button>
                 @endif
             @endif
+        </div>
+    </div>
+
+    {{-- Modal Edit Jaminan --}}
+    <div class="modal fade" id="EditJaminan" tabindex="-1" aria-labelledby="EditJaminanLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="EditJaminanLabel">
+                        Edit Jaminan Individu {{ $perguliran_i->anggota->namadepan }} Loan ID. {{ $perguliran_i->id }}
+                    </h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="FormEditJaminan">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="_id_jaminan" id="_id_jaminan" value="{{ $perguliran_i->id }}">
+                        <div id="LayoutEditJaminan">
+                            <div class="text-center text-muted">Memuat form jaminan...</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" id="SimpanEditJaminan" class="btn btn-github btn-sm">Simpan Perubahan</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -608,6 +643,52 @@
             $.get('/perguliran_i/{{ $perguliran_i->id }}/edit', function(result) {
                 $('#LayoutEditProposal').html(result)
                 $('#EditProposal').modal('show')
+            })
+        })
+
+        $('#BtnEditJaminan').click(function(e) {
+            e.preventDefault()
+
+            $.get('/perguliran_i/{{ $perguliran_i->id }}/form-jaminan', function(result) {
+                if (result.success) {
+                    $('#LayoutEditJaminan').html(result.view)
+                    $('#EditJaminan').modal('show')
+                    if (typeof $.fn.maskMoney === 'function') {
+                        $("#nilai_jual_tanah, #nilai_jual_kendaraan, #nilai_jaminan").maskMoney()
+                    }
+                } else {
+                    Swal.fire('Peringatan', result.msg, 'warning')
+                }
+            })
+        })
+
+        $(document).on('click', '#SimpanEditJaminan', function(e) {
+            e.preventDefault()
+            $('small').html('')
+
+            var form = $('#FormEditJaminan')
+            $.ajax({
+                type: 'POST',
+                url: '/perguliran_i/{{ $perguliran_i->id }}/jaminan',
+                data: form.serialize(),
+                success: function(result) {
+                    Swal.fire('Berhasil', result.msg, 'success').then(() => {
+                        $('#EditJaminan').modal('hide')
+                        window.location.reload()
+                    })
+                },
+                error: function(result) {
+                    const respons = result.responseJSON
+                    Swal.fire('Error', 'Cek kembali input yang anda masukkan', 'error')
+                    $.map(respons, function(res, key) {
+                        if (key === 'data_jaminan' || key.startsWith('data_jaminan.')) {
+                            var fieldKey = key.replace('data_jaminan.', '')
+                            $('#FormEditJaminan #msg_' + fieldKey).html(res[0] || res)
+                        } else {
+                            $('#FormEditJaminan #msg_' + key).html(res[0] || res)
+                        }
+                    })
+                }
             })
         })
 
