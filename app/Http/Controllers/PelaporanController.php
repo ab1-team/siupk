@@ -82,6 +82,10 @@ class PelaporanController extends Controller
             return view('pelaporan.partials.sub_laporan')->with(compact('file', 'keterangan'));
         }
 
+        if ($file == 'calk_v2') {
+            return view('pelaporan.partials.sub_laporan')->with(compact('file'));
+        }
+
         if ($file == 5) {
             $jenis_laporan = JenisLaporanPinjaman::where('file', '!=', '0')->orderBy('urut', 'ASC')->get();
 
@@ -1696,6 +1700,55 @@ class PelaporanController extends Controller
             ['tahun', $thn]
         ])->get();
         $view = view('pelaporan.view.calk', $data)->render();
+
+        if ($data['type'] == 'pdf') {
+            $pdf = PDF::loadHTML($view);
+            return $pdf->stream();
+        } else {
+            return $view;
+        }
+    }
+
+    private function calk_v2(array $data)
+    {
+        $keuangan = new Keuangan;
+        $data['laporan'] = 'calk_v2';
+
+        $thn = $data['tahun'];
+        $bln = $data['bulan'];
+        $hari = $data['hari'];
+
+        if ($bln == '1' && $hari == '1') {
+            $data['sub_judul'] = 'Tahun ' . $thn;
+            $data['nama_tgl'] = 'Tahun ' . $thn;
+            $data['tgl'] = Tanggal::tahun($thn . '-01-01');
+        } else {
+            $tgl = $thn . '-' . $bln . '-' . $hari;
+            $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+            $data['nama_tgl'] = 'Bulan ' . Tanggal::namaBulan($tgl) . ' Tahun ' . $thn;
+            $data['sub_judul'] = 'Bulan ' . Tanggal::namaBulan($tgl) . ' Tahun ' . $thn;
+        }
+
+        $data['debit'] = 0;
+        $data['kredit'] = 0;
+
+        $data['akun1'] = AkunLevel1::where('lev1', '<=', '3')->with([
+            'akun2',
+            'akun2.akun3',
+            'akun2.akun3.rek',
+            'akun2.akun3.rek.kom_saldo' => function ($query) use ($data) {
+                $query->where('tahun', $data['tahun'])->where(function ($query) use ($data) {
+                    $query->where('bulan', '0')->orwhere('bulan', $data['bulan']);
+                });
+            },
+        ])->orderBy('kode_akun', 'ASC')->get();
+
+        $data['saldo_calk'] = Saldo::where([
+            ['kode_akun', $data['kec']->kd_kec],
+            ['tahun', $thn]
+        ])->get();
+
+        $view = view('pelaporan.view.calk_v2', $data)->render();
 
         if ($data['type'] == 'pdf') {
             $pdf = PDF::loadHTML($view);

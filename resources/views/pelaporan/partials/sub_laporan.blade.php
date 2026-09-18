@@ -36,6 +36,8 @@
             theme: 'snow'
         });
     </script>
+@elseif ($file == 'calk_v2')
+    <input type="hidden" name="sub_laporan" id="sub_laporan" value="calk_v2">
 @elseif ($file == 5)
     <div class="my-2">
         <label class="form-label" for="sub_laporan">Nama Sub Laporan</label>
