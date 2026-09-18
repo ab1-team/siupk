@@ -6,18 +6,18 @@
 
 @section('content')
 <table width="97%" border="0" align="center" cellpadding="3" cellspacing="0">
-        
+
 <tr>
         <td height="70" colspan="3" class="bottom">
         <p align="center" class="style6" style="font-size: 18px; font-weight: bold;">SURAT KUASA KHUSUS</p>
 
         </td>
     </tr>
-      
+
       <tr>
         <td height="10" colspan="3" class="style9"></td>
       </tr>
-      <tr> 
+      <tr>
         <td height="10" colspan="3" class="style9">Yang bertanda tangan dan/atau membubuhkan cap jempol dibawah ini,</td>
       </tr>
       <tr>
@@ -37,8 +37,8 @@
       </tr>
       <tr>
         <td height="10" class="style9">Tempat, Tanggal Lahir </td>
-        <td class="style27">:  {{ $pinkel->anggota->tempat_lahir}} 
-                {{ Tanggal::tglLatin($pinkel->anggota->tgl_lahir) }} 
+        <td class="style27">:  {{ $pinkel->anggota->tempat_lahir}}
+                {{ Tanggal::tglLatin($pinkel->anggota->tgl_lahir) }}
             </td>
         <td height="10" class="style9">&nbsp;</td>
       </tr>
@@ -57,8 +57,8 @@
         <td class="style27">: {{ $pinkel->anggota->hp }}</td>
         <td height="10" class="style9">&nbsp;</td>
       </tr>
-      
-      
+
+
       <tr>
         <td height="20" colspan="3" class="style9">Dengan ini memberikan persetujuan dan kuasa sepenuhnya kepada,</td>
       </tr>
@@ -72,8 +72,8 @@
         <td class="style27">: {{ $kec->sebutan_level_1 }} {{ $kec->nama_lembaga_sort }}</td>
         <td height="10" class="style9">&nbsp;</td>
       </tr>
-      </table> 
-	 
+      </table>
+
       <style>
     .align-justify {
         text-align: justify;
@@ -84,9 +84,13 @@
     <tr>
         <td height="10" colspan="3" class="style9 align-justify">
             <p>
-                Untuk  menggunakan barang jaminan yang kami serahterimakan kepada {{ $kec->nama_lembaga_sort }}, sebagaimana tertuang dalam bukti serah terima barang jaminan yang menjadi bagian dari kelengkapan dokumen Pencairan Pinjaman kelak pada saat pencairan pinjaman berkaitan dengan pangajuan pinjaman ini.
-                Selanjutnya saya menyatakan sanggup untuk memberikan keterangan, memberikan dukungan dan/atau menandatangani kelengkapan dokumen apabila dikemudian hari diperlukan proses eksekusi barang jaminan guna memenuhi kewajiban pengembalian pinjaman saya kepada {{ $kec->nama_lembaga_sort }}.
-                Demikian surat persetujuan/pernyataan sekaligus Surat kuasa khusus ini saya buat secara sadar tanpa tekanan dari pihak manapun serta untuk dapat dipergunakan dimana perlu.
+                Untuk itu, dengan ini saya memberikan **kuasa khusus** kepada {{ $kec->nama_lembaga_sort }} untuk melakukan tindakan yang diperlukan terhadap barang jaminan yang telah saya serahterimakan sebagaimana tercantum dalam Bukti Serah Terima Barang Jaminan, yang merupakan bagian tidak terpisahkan dari kelengkapan dokumen pencairan pinjaman.
+            </p>
+            <p>
+                Apabila dalam pelaksanaan kewajiban pembayaran pinjaman terjadi keterlambatan atau kemacetan angsuran, maka saya memberikan kuasa kepada {{ $kec->nama_lembaga_sort }} untuk melakukan tindakan terhadap barang jaminan tersebut sesuai dengan ketentuan yang berlaku, sebagai bagian dari upaya penyelesaian kewajiban pengembalian pinjaman saya kepada {{ $kec->nama_lembaga_sort }}.
+            </p>
+            <p>
+                Demikian Surat Persetujuan/Pernyataan sekaligus Surat Kuasa Khusus ini saya buat dengan sebenar-benarnya, dalam keadaan sadar dan tanpa adanya paksaan, tekanan, maupun pengaruh dari pihak mana pun, untuk dapat dipergunakan sebagaimana mestinya.
             </p>
         </td>
     </tr>
@@ -96,9 +100,9 @@
         <td height="20" class="style9"><div align="right"><span class="style9"><br>{{$pinkel->anggota->d->nama_desa}}, {{ Tanggal::tglLatin($pinkel->tgl_proposal) }}</span></div></td>
       </tr>
 </table>
-	  
+
 <table width="97%" border="0" align="center" cellpadding="3" cellspacing="0">
-   
+
   <tr>
         <td width="10%" height="30" colspan="1" class="style26"><div align="center" class="style9">
           <p></p>
@@ -112,7 +116,7 @@
 {{$pinkel->anggota->namadepan}}        </p>
          </p>
         </div></td>
-      </tr>	
-	
+      </tr>
+
 </table>
 @endsection
