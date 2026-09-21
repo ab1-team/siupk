@@ -174,9 +174,12 @@
                         $jaminan = json_decode($pinkel->jaminan, true);
                     @endphp
 
-                    @if (is_array($jaminan) || is_object($jaminan))
-                       : <table>
+@if (is_array($jaminan) || is_object($jaminan))
+                        : <table>
                             @foreach ($jaminan as $key => $value)
+                                @if ($key === 'jenis_jaminan')
+                                    @continue
+                                @endif
                                 <tr>
                                     <td>{{ ucwords(str_replace('_', ' ', $key)) }}</td>
                                     <td>:</td>
@@ -277,10 +280,10 @@
                             </td>
                         </tr>
                     </table>
-                    <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px;"
+                    <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 10px; font-family: Arial, Helvetica, sans-serif;"
                         class="p">
                         <tr>
-                            <td>
+                            <td style="font-size: 10px; font-family: Arial, Helvetica, sans-serif;">
                                 {!! $ttd !!}
                             </td>
                         </tr>
