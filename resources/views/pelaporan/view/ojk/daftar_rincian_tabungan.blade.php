@@ -139,8 +139,8 @@ $nomor = 1;
     $tgl2 = new DateTime($simp->tgl_buka);
     $selisih = $tgl2->diff($tgl1);
 
-    $tgl1 = Tanggal::tglIndo($simp->tgl_tutup);
-    $tgl2 = Tanggal::tglIndo($simp->tgl_buka);
+    $tgl1 = Tanggal::tglOjk($simp->tgl_tutup);
+    $tgl2 = Tanggal::tglOjk($simp->tgl_buka);
     $y12 = date('Y')-1;
     $sum_saldo = $simp->realSimpananTerbesar->pluck('sum')->first() ?? 0;
 

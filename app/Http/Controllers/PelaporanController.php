@@ -41,7 +41,7 @@ class PelaporanController extends Controller
     public function index()
     {
         $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
-        $laporan = JenisLaporan::where([['file', '!=', '0']])->orderBy('urut', 'ASC')->get();
+        $laporan = JenisLaporan::where([['file', '!=', '0'], ['status', '=', 1]])->orderBy('urut', 'ASC')->get();
 
         $title = 'Pelaporan';
         return view('pelaporan.index')->with(compact('title', 'kec', 'laporan'));
@@ -61,7 +61,19 @@ class PelaporanController extends Controller
         }
 
         if ($file == 20) {
-            $ojk = SubLaporan::withoutGlobalScopes()->orderBy('id')->get();
+            $ojk = SubLaporan::withoutGlobalScopes()
+                ->where('id_lap', 0)
+                ->orderBy('id')
+                ->get();
+            return view('pelaporan.partials.sub_laporan')->with(compact('file', 'ojk'));
+        }
+
+        if ($file == '20_P19' || $file == '20_P41') {
+            $parentId = \App\Models\JenisLaporan::where('file', $file)->value('id');
+            $ojk = SubLaporan::withoutGlobalScopes()
+                ->where('id_lap', $parentId)
+                ->orderBy('urut')
+                ->get();
             return view('pelaporan.partials.sub_laporan')->with(compact('file', 'ojk'));
         }
 
@@ -253,6 +265,10 @@ class PelaporanController extends Controller
         } elseif ($file == 20) {
             $file = $request->sub_laporan;
             return $this->$file($data);
+        } elseif ($file == '20_P19' || $file == '20_P41') {
+            $sub = $request->sub_laporan;
+            $data['pojk'] = $file === '20_P19' ? '19' : '41';
+            return $this->$sub($data);
         } elseif ($file == 5) {
             $file = $request->sub_laporan;
             $data['laporan'] = $file;
@@ -418,6 +434,21 @@ class PelaporanController extends Controller
             $data['sub_judul'] = date('t', strtotime($tgl)) . ' Bulan ' . Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
         }
 
+        // Cache seluruh output (HTML + PDF) untuk menghindari query berulang yang lambat
+        $cacheKey = 'ojk_drp_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        $cacheKeyPdf = $cacheKey . '_pdf';
+
+        if ($data['type'] == 'pdf' && \Illuminate\Support\Facades\Cache::has($cacheKeyPdf)) {
+            $pdf = \Illuminate\Support\Facades\Cache::get($cacheKeyPdf);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="DRP.pdf"',
+            ]);
+        }
+        if ($data['type'] == 'html' && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            return \Illuminate\Support\Facades\Cache::get($cacheKey);
+        }
+
         $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
         $data['jenis_pp_i'] = JenisProdukPinjaman::where(function ($query) use ($kec) {
             $query->where('lokasi', '0')
@@ -527,10 +558,15 @@ class PelaporanController extends Controller
 
         $data['laporan'] = 'Pinjaman Aktif';
         $view = view('pelaporan.view.ojk.daftar_rincian_pinjamanaktif', $data)->render();
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $view, 300);
 
         if ($data['type'] == 'pdf') {
-            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape');
-            return $pdf->stream();
+            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape')->output();
+            \Illuminate\Support\Facades\Cache::put($cacheKeyPdf, $pdf, 300);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="DRP.pdf"',
+            ]);
         } else {
             return $view;
         }
@@ -549,6 +585,16 @@ class PelaporanController extends Controller
         if ($data['bulanan']) {
             $data['judul'] = 'Laporan Keuangan';
             $data['sub_judul'] = date('t', strtotime($tgl)) . ' Bulan ' . Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+        }
+
+        $cacheKey = 'ojk_drpl_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        $cacheKeyPdf = $cacheKey . '_pdf';
+        if ($data['type'] == 'pdf' && \Illuminate\Support\Facades\Cache::has($cacheKeyPdf)) {
+            $pdf = \Illuminate\Support\Facades\Cache::get($cacheKeyPdf);
+            return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="DRPL.pdf"']);
+        }
+        if ($data['type'] == 'html' && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            return \Illuminate\Support\Facades\Cache::get($cacheKey);
         }
 
         $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
@@ -601,10 +647,15 @@ class PelaporanController extends Controller
 
         $data['laporan'] = 'Pinjaman Lunas';
         $view = view('pelaporan.view.ojk.rincian_pinjaman_lunas', $data)->render();
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $view, 300);
 
         if ($data['type'] == 'pdf') {
-            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape');
-            return $pdf->stream();
+            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape')->output();
+            \Illuminate\Support\Facades\Cache::put($cacheKeyPdf, $pdf, 300);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="DRPL.pdf"',
+            ]);
         } else {
             return $view;
         }
@@ -624,6 +675,14 @@ class PelaporanController extends Controller
         if ($data['bulanan']) {
             $data['judul'] = 'Laporan Keuangan';
             $data['sub_judul'] = date('t', strtotime($tgl)) . ' Bulan ' . Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+        }
+
+        $cacheKey = 'ojk_drpli_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        if ($cached = $this->getOjkCacheOrNull($cacheKey, $data['type'])) {
+            if ($data['type'] == 'pdf') {
+                return response($cached, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="DRPLi.pdf"']);
+            }
+            return $cached;
         }
 
         $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
@@ -678,10 +737,15 @@ class PelaporanController extends Controller
         ])->get();
         $data['laporan'] = 'Pinjaman Lunas';
         $view = view('pelaporan.view.ojk.rincian_pinjaman_lunas_i', $data)->render();
+        $this->putOjkCache($cacheKey, 'html', $view);
 
         if ($data['type'] == 'pdf') {
-            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape');
-            return $pdf->stream();
+            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape')->output();
+            $this->putOjkCache($cacheKey, 'pdf', $pdf);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="DRPLi.pdf"',
+            ]);
         } else {
             return $view;
         }
@@ -832,6 +896,15 @@ class PelaporanController extends Controller
             $data['judul'] = 'Laporan Keuangan';
             $data['sub_judul'] = date('t', strtotime($tgl)) . ' Bulan ' . Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
         }
+
+        $cacheKey = 'ojk_drpy_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        if ($cached = $this->getOjkCacheOrNull($cacheKey, $data['type'])) {
+            if ($data['type'] == 'pdf') {
+                return response($cached, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="DRPY.pdf"']);
+            }
+            return $cached;
+        }
+
         $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
         $data['jenis_pp'] = JenisProdukPinjaman::where(function ($query) use ($kec) {
             $query->where('lokasi', '0')
@@ -899,10 +972,15 @@ class PelaporanController extends Controller
 
         $data['laporan'] = 'Rincian pinjaman Diterima';
         $view = view('pelaporan.view.ojk.rincian_pinjaman_diterima', $data)->render();
+        $this->putOjkCache($cacheKey, 'html', $view);
 
         if ($data['type'] == 'pdf') {
-            $pdf = PDF::loadHTML($view);
-            return $pdf->stream();
+            $pdf = PDF::loadHTML($view)->output();
+            $this->putOjkCache($cacheKey, 'pdf', $pdf);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="DRPY.pdf"',
+            ]);
         } else {
             return $view;
         }
@@ -920,6 +998,14 @@ class PelaporanController extends Controller
         if ($data['bulanan']) {
             $data['sub_judul'] = 'Bulan ' . Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
             $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+        }
+
+        $cacheKey = 'ojk_kbp_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        if ($cached = $this->getOjkCacheOrNull($cacheKey, $data['type'])) {
+            if ($data['type'] == 'pdf') {
+                return response($cached, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="KBP.pdf"']);
+            }
+            return $cached;
         }
 
         $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
@@ -1058,10 +1144,15 @@ class PelaporanController extends Controller
 
 
         $view = view('pelaporan.view.ojk.kolekbilitas_pinjaman', $data)->render();
+        $this->putOjkCache($cacheKey, 'html', $view);
 
         if ($data['type'] == 'pdf') {
-            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape');
-            return $pdf->stream();
+            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape')->output();
+            $this->putOjkCache($cacheKey, 'pdf', $pdf);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="KBP.pdf"',
+            ]);
         } else {
             return $view;
         }
@@ -1217,10 +1308,15 @@ class PelaporanController extends Controller
 
 
         $view = view('pelaporan.view.ojk.kolekbilitas_pinjaman2', $data)->render();
+        $this->putOjkCache($cacheKey, 'html', $view);
 
         if ($data['type'] == 'pdf') {
-            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape');
-            return $pdf->stream();
+            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape')->output();
+            $this->putOjkCache($cacheKey, 'pdf', $pdf);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="KBP2.pdf"',
+            ]);
         } else {
             return $view;
         }
@@ -1238,6 +1334,14 @@ class PelaporanController extends Controller
         if ($data['bulanan']) {
             $data['sub_judul'] = 'Bulan ' . Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
             $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+        }
+
+        $cacheKey = 'ojk_pcpp_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        if ($cached = $this->getOjkCacheOrNull($cacheKey, $data['type'])) {
+            if ($data['type'] == 'pdf') {
+                return response($cached, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="PCPP.pdf"']);
+            }
+            return $cached;
         }
 
         $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
@@ -1375,10 +1479,15 @@ class PelaporanController extends Controller
         ])->get();
 
         $view = view('pelaporan.view.ojk.penyisihan_cadangan', $data)->render();
+        $this->putOjkCache($cacheKey, 'html', $view);
 
         if ($data['type'] == 'pdf') {
-            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape');
-            return $pdf->stream();
+            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape')->output();
+            $this->putOjkCache($cacheKey, 'pdf', $pdf);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="PCPP.pdf"',
+            ]);
         } else {
             return $view;
         }
@@ -3918,6 +4027,14 @@ private function pemanfaat_aktif(array $data)
             $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
         }
 
+        $cacheKey = 'ojk_sehat_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        if ($cached = $this->getOjkCacheOrNull($cacheKey, $data['type'])) {
+            if ($data['type'] == 'pdf') {
+                return response($cached, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="Sehat.pdf"']);
+            }
+            return $cached;
+        }
+
         $data['dir'] = User::where([
             ['level', $data['kec']->ttd_mengetahui_lap],
             ['jabatan', '1'],
@@ -3937,10 +4054,15 @@ private function pemanfaat_aktif(array $data)
         ])->first();
 
         $view = view('pelaporan.view.ojk.penilaian_kesehatan', $data)->render();
+        $this->putOjkCache($cacheKey, 'html', $view);
 
         if ($data['type'] == 'pdf') {
-            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape');
-            return $pdf->stream();
+            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape')->output();
+            $this->putOjkCache($cacheKey, 'pdf', $pdf);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="Sehat.pdf"',
+            ]);
         } else {
             return $view;
         }
@@ -5088,19 +5210,27 @@ private function catatan_pengawas(array $data)
 
 private function kolek_per_kelompok_mingguan(array $data)
 {
-    $thn = $data['tahun'];
-    $bln = $data['bulan'];
-    $hari = $data['hari'];
+        $thn = $data['tahun'];
+        $bln = $data['bulan'];
+        $hari = $data['hari'];
 
-    $tgl = $thn . '-' . $bln . '-' . $hari;
-    $data['sub_judul'] = 'Tahun ' . Tanggal::tahun($tgl);
-    $data['tgl'] = Tanggal::tahun($tgl);
-    if ($data['bulanan']) {
-        $data['sub_judul'] = 'Bulan ' . Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
-        $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
-    }
+        $tgl = $thn . '-' . $bln . '-' . $hari;
+        $data['sub_judul'] = 'Tahun ' . Tanggal::tahun($tgl);
+        $data['tgl'] = Tanggal::tahun($tgl);
+        if ($data['bulanan']) {
+            $data['sub_judul'] = 'Bulan ' . Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+            $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+        }
 
-    $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
+        $cacheKey = 'ojk_kbp2_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        if ($cached = $this->getOjkCacheOrNull($cacheKey, $data['type'])) {
+            if ($data['type'] == 'pdf') {
+                return response($cached, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="KBP2.pdf"']);
+            }
+            return $cached;
+        }
+
+        $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
     $data['jenis_pp'] = JenisProdukPinjaman::where(function ($query) use ($kec) {
         $query->where('lokasi', '0')
             ->orWhere(function ($query) use ($kec) {
@@ -5195,4 +5325,243 @@ private function kolek_per_kelompok_mingguan(array $data)
 
 
 
+
+    // === Wrapper OJK POJK 19/2021 (alias ke method existing) ===
+    private function CV_P19(array $data) { $data = $this->applyPojkFormat($data); return $this->CV($data); }
+    private function PF_P19(array $data) { $data = $this->applyPojkFormat($data); return $this->PF($data); }
+    private function OJKP19(array $data) { $data = $this->applyPojkFormat($data); return $this->OJKP($data); }
+    private function LRL_P1(array $data) { $data = $this->applyPojkFormat($data); return $this->LRL($data); }
+    private function DRP_P1(array $data) { $data = $this->applyPojkFormat($data); return $this->DRP($data); }
+    private function DRPLP1(array $data) { $data = $this->applyPojkFormat($data); return $this->DRPL($data); }
+    private function DRPLi1(array $data) { $data = $this->applyPojkFormat($data); return $this->DRPLi($data); }
+    private function DRT_P1(array $data) { $data = $this->applyPojkFormat($data); return $this->DRT($data); }
+    private function DRPY_P(array $data) { $data = $this->applyPojkFormat($data); return $this->DRPY($data); }
+    private function KBP_P1(array $data) { $data = $this->applyPojkFormat($data); return $this->KBP($data); }
+    private function PCPP_P(array $data) { $data = $this->applyPojkFormat($data); return $this->pcpp($data); }
+    private function bungaP1(array $data) { $data = $this->applyPojkFormat($data); return $this->bunga($data); }
+    private function SehatP1(array $data) { $data = $this->applyPojkFormat($data); return $this->Sehat($data); }
+
+    // === Wrapper OJK POJK 41/2024 (alias ke method existing) ===
+    private function CV_P41(array $data) { $data = $this->applyPojkFormat($data); return $this->CV($data); }
+    private function PF_P41(array $data) { $data = $this->applyPojkFormat($data); return $this->PF($data); }
+    private function OJKP41(array $data) { $data = $this->applyPojkFormat($data); return $this->OJKP($data); }
+    private function LRL_P4(array $data) { $data = $this->applyPojkFormat($data); return $this->LRL($data); }
+    private function DRP_P4(array $data) { $data = $this->applyPojkFormat($data); return $this->DRP($data); }
+    private function DRPLP4(array $data) { $data = $this->applyPojkFormat($data); return $this->DRPL($data); }
+    private function DRPLi4(array $data) { $data = $this->applyPojkFormat($data); return $this->DRPLi($data); }
+    private function DRT_P4(array $data) { $data = $this->applyPojkFormat($data); return $this->DRT($data); }
+    private function DRPY4(array $data) { $data = $this->applyPojkFormat($data); return $this->DRPY($data); }
+    private function PCPP4(array $data) { $data = $this->applyPojkFormat($data); return $this->pcpp($data); }
+    private function bungaP4(array $data) { $data = $this->applyPojkFormat($data); return $this->bunga($data); }
+    private function SehatP4(array $data)
+    {
+        $data = $this->applyPojkFormat($data);
+        $thn = $data['tahun'];
+        $bln = $data['bulan'];
+        $hari = $data['hari'];
+
+        $tgl = $thn . '-' . $bln . '-' . $hari;
+        $data['sub_judul'] = 'Tahun ' . Tanggal::tahun($tgl);
+        $data['tgl'] = Tanggal::tahun($tgl);
+        if ($data['bulanan']) {
+            $data['sub_judul'] = 'Bulan ' . Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+            $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+        }
+
+        $cacheKey = 'ojk_sehatp4_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        if ($cached = $this->getOjkCacheOrNull($cacheKey, $data['type'])) {
+            if ($data['type'] == 'pdf') {
+                return response($cached, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="SehatP4.pdf"']);
+            }
+            return $cached;
+        }
+
+        $data['dir'] = User::where([
+            ['level', $data['kec']->ttd_mengetahui_lap],
+            ['jabatan', '1'],
+            ['lokasi', Session::get('lokasi')]
+        ])->first();
+
+        $data['pengawas'] = User::where([
+            ['level', '3'],
+            ['jabatan', '1'],
+            ['lokasi', Session::get('lokasi')]
+        ])->first();
+
+        $view = view('pelaporan.view.ojk.penilaian_kesehatan_pojk41', $data)->render();
+        $this->putOjkCache($cacheKey, 'html', $view);
+
+        if ($data['type'] == 'pdf') {
+            $pdf = PDF::loadHTML($view)->output();
+            $this->putOjkCache($cacheKey, 'pdf', $pdf);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="SehatP4.pdf"',
+            ]);
+        } else {
+            return $view;
+        }
+    }
+
+    private function applyPojkFormat(array $data)
+    {
+        $data['pojk'] = $data['pojk'] ?? '41';
+        if (isset($data['kec'])) {
+            $data['tanggal_kondisi'] = $data['kec']->nama_kec . ', ' . Tanggal::tglOjk($data['tgl_kondisi']);
+        }
+        return $data;
+    }
+
+    private function applyOjkCache(string $cacheKey, string $data, array $params = []): string
+    {
+        return $data;
+    }
+
+    private function getOjkCacheOrNull(string $cacheKey, string $type): ?string
+    {
+        $key = $type === 'pdf' ? $cacheKey . '_pdf' : $cacheKey;
+        if (\Illuminate\Support\Facades\Cache::has($key)) {
+            return \Illuminate\Support\Facades\Cache::get($key);
+        }
+        return null;
+    }
+
+    private function putOjkCache(string $cacheKey, string $type, $data)
+    {
+        $key = $type === 'pdf' ? $cacheKey . '_pdf' : $cacheKey;
+        \Illuminate\Support\Facades\Cache::put($key, $data, 300);
+    }
+
+    // Kolektibilitas DPD POJK 41/2024 (5 kategori berbasis hari kalender)
+    private function KBP2P4(array $data)
+    {
+        $data = $this->applyPojkFormat($data);
+        $thn = $data['tahun'];
+        $bln = $data['bulan'];
+        $hari = $data['hari'];
+
+        $tgl = $thn . '-' . $bln . '-' . $hari;
+        $data['sub_judul'] = 'Tahun ' . Tanggal::tahun($tgl);
+        $data['tgl'] = Tanggal::tahun($tgl);
+        if ($data['bulanan']) {
+            $data['sub_judul'] = 'Bulan ' . Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+            $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
+        }
+
+        $cacheKey = 'ojk_kbp2p4_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        if ($cached = $this->getOjkCacheOrNull($cacheKey, $data['type'])) {
+            if ($data['type'] == 'pdf') {
+                return response($cached, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="KBP2P4.pdf"']);
+            }
+            return $cached;
+        }
+
+        $kec = Kecamatan::where('id', Session::get('lokasi'))->first();
+        $data['jenis_pp'] = JenisProdukPinjaman::where(function ($query) use ($kec) {
+            $query->where('lokasi', '0')
+                ->orWhere(function ($query) use ($kec) {
+                    $query->where('kecuali', 'NOT LIKE', "%-{$kec['id']}-%")
+                        ->where('lokasi', 'LIKE', "%-{$kec['id']}-%");
+                });
+        })->with([
+            'pinjaman_kelompok' => function ($query) use ($data) {
+                $tb_pinkel = 'pinjaman_kelompok_' . $data['kec']->id;
+                $tb_kel = 'kelompok_' . $data['kec']->id;
+                $data['tb_pinkel'] = $tb_pinkel;
+
+                $query->select($tb_pinkel . '.*', $tb_kel . '.nama_kelompok', 'desa.nama_desa', 'desa.kd_desa', 'desa.kode_desa', 'sebutan_desa.sebutan_desa')
+                    ->join($tb_kel, $tb_kel . '.id', '=', $tb_pinkel . '.id_kel')
+                    ->join('desa', $tb_kel . '.desa', '=', 'desa.kd_desa')
+                    ->join('sebutan_desa', 'sebutan_desa.id', '=', 'desa.sebutan')
+                    ->where($tb_pinkel . '.sistem_angsuran', '!=', '12')->where(function ($query) use ($data) {
+                        $query->where([
+                            [$data['tb_pinkel'] . '.status', 'A'],
+                            [$data['tb_pinkel'] . '.tgl_cair', '<=', $data['tgl_kondisi']]
+                        ])->orwhere([
+                            [$data['tb_pinkel'] . '.status', 'L'],
+                            [$data['tb_pinkel'] . '.tgl_cair', '<=', $data['tgl_kondisi']],
+                            [$data['tb_pinkel'] . '.tgl_lunas', '>=', "$data[tahun]-01-01"]
+                        ])->orwhere([
+                            [$data['tb_pinkel'] . '.status', 'L'],
+                            [$data['tb_pinkel'] . '.tgl_lunas', '<=', $data['tgl_kondisi']],
+                            [$data['tb_pinkel'] . '.tgl_lunas', '>=', "$data[tahun]-01-01"]
+                        ])->orwhere([
+                            [$data['tb_pinkel'] . '.status', 'R'],
+                            [$data['tb_pinkel'] . '.tgl_cair', '<=', $data['tgl_kondisi']],
+                            [$data['tb_pinkel'] . '.tgl_lunas', '>=', "$data[tahun]-01-01"]
+                        ])->orwhere([
+                            [$data['tb_pinkel'] . '.status', 'R'],
+                            [$data['tb_pinkel'] . '.tgl_lunas', '<=', $data['tgl_kondisi']],
+                            [$data['tb_pinkel'] . '.tgl_lunas', '>=', "$data[tahun]-01-01"]
+                        ])->orwhere([
+                            [$data['tb_pinkel'] . '.status', 'H'],
+                            [$data['tb_pinkel'] . '.tgl_cair', '<=', $data['tgl_kondisi']],
+                            [$data['tb_pinkel'] . '.tgl_lunas', '>=', "$data[tahun]-01-01"]
+                        ])->orwhere([
+                            [$data['tb_pinkel'] . '.status', 'H'],
+                            [$data['tb_pinkel'] . '.tgl_lunas', '<=', $data['tgl_kondisi']],
+                            [$data['tb_pinkel'] . '.tgl_lunas', '>=', "$data[tahun]-01-01"]
+                        ]);
+                    })
+                    ->orderBy($tb_kel . '.desa', 'ASC')
+                    ->orderBy($tb_pinkel . '.tgl_cair', 'ASC');
+            },
+            'pinjaman_individu' => function ($query) use ($data) {
+                $tb_pinj_i = 'pinjaman_anggota_' . $data['kec']->id;
+                $tb_angg = 'anggota_' . $data['kec']->id;
+                $data['tb_pinj_i'] = $tb_pinj_i;
+
+                $query->select($tb_pinj_i . '.*', $tb_angg . '.namadepan', 'desa.nama_desa', 'desa.kd_desa', 'desa.kode_desa', 'sebutan_desa.sebutan_desa')
+                    ->join($tb_angg, $tb_angg . '.id', '=', $tb_pinj_i . '.nia')
+                    ->join('desa', $tb_angg . '.desa', '=', 'desa.kd_desa')
+                    ->join('sebutan_desa', 'sebutan_desa.id', '=', 'desa.sebutan')
+                    ->where($tb_pinj_i . '.sistem_angsuran', '!=', '12')
+                    ->where($tb_pinj_i . '.jenis_pinjaman', 'I')
+                    ->where(function ($query) use ($data) {
+                        $query->where([
+                            [$data['tb_pinj_i'] . '.status', 'A'],
+                            [$data['tb_pinj_i'] . '.tgl_cair', '<=', $data['tgl_kondisi']]
+                        ])->orwhere([
+                            [$data['tb_pinj_i'] . '.status', 'L'],
+                            [$data['tb_pinj_i'] . '.jenis_pinjaman', 'I'],
+                            [$data['tb_pinj_i'] . '.tgl_cair', '<=', $data['tgl_kondisi']],
+                            [$data['tb_pinj_i'] . '.tgl_lunas', '>=', "$data[tahun]-01-01"]
+                        ])->orwhere([
+                            [$data['tb_pinj_i'] . '.status', 'L'],
+                            [$data['tb_pinj_i'] . '.jenis_pinjaman', 'I'],
+                            [$data['tb_pinj_i'] . '.tgl_lunas', '<=', $data['tgl_kondisi']],
+                            [$data['tb_pinj_i'] . '.tgl_lunas', '>=', "$data[tahun]-01-01"]
+                        ]);
+                    })
+                    ->orderBy($tb_angg . '.desa', 'ASC')
+                    ->orderBy($tb_pinj_i . '.tgl_cair', 'ASC');
+            },
+            'pinjaman_kelompok.saldo' => function ($query) use ($data) {
+                $query->where('tgl_transaksi', '<=', $data['tgl_kondisi']);
+            },
+            'pinjaman_kelompok.target' => function ($query) use ($data) {
+                $query->where('jatuh_tempo', '<=', $data['tgl_kondisi']);
+            },
+            'pinjaman_individu.saldo' => function ($query) use ($data) {
+                $query->where('tgl_transaksi', '<=', $data['tgl_kondisi']);
+            },
+            'pinjaman_individu.target' => function ($query) use ($data) {
+                $query->where('jatuh_tempo', '<=', $data['tgl_kondisi']);
+            }
+        ])->get();
+
+        $view = view('pelaporan.view.ojk.kolekbilitas_pinjaman_dpd', $data)->render();
+        $this->putOjkCache($cacheKey, 'html', $view);
+
+        if ($data['type'] == 'pdf') {
+            $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape')->output();
+            $this->putOjkCache($cacheKey, 'pdf', $pdf);
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="KBP2P4.pdf"',
+            ]);
+        } else {
+            return $view;
+        }
+    }
 }

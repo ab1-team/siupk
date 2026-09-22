@@ -9,12 +9,12 @@
         <small class="text-danger" id="msg_sub_laporan"></small>
     </div>
 
-@elseif ($file == 20)
+@elseif ($file == 20 || $file == '20_P19' || $file == '20_P41')
     <div class="my-2">
         <label class="form-label" for="sub_laporan">Nama Sub Laporan</label>
         <select class="sublaporanselect2 form-control" name="sub_laporan" id="sub_laporan">
         @foreach ($ojk as $index => $lp)
-            <option value="{{ $lp->file }}">{{ $index + 1 }}. {{ $lp->nama_laporan }}</option>
+            <option value="{{ $lp->file }}">{{ str_pad($lp->urut, 2, '0', STR_PAD_LEFT) }}. {{ $lp->nama_laporan }}</option>
         @endforeach
 
         </select>

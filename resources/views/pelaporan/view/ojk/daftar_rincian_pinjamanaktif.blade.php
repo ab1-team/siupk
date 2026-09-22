@@ -280,9 +280,9 @@ $empty = false;
         $kpenambahan ="+".$pinj->jangka." month";
         $ktgl2 = date('Y-m-d', strtotime($kpenambahan, strtotime($ktgl1)));
                                             @endphp
-                                            <td class="left top" align="center">{{ Tanggal::tglIndo($ktgl1) }}
+                                            <td class="left top" align="center">{{ Tanggal::tglOjk($ktgl1) }}
                                             </td>
-                                            <td class="left top" align="center">{{ Tanggal::tglIndo($ktgl2)}}</td>
+                                            <td class="left top" align="center">{{ Tanggal::tglOjk($ktgl2)}}</td>
                                             <td class="left top">{{$kpros_jasa}}%</td>
                                             <td class="left top" align="center">per bulan</td>
                                             <td class="left top">{{number_format($pinj->alokasi)}}</td>
@@ -532,14 +532,14 @@ $empty = false;
                                             <td class="left top" align="center">{{ $nomor++ }}</td>
                                             <td class="left top" align="left">{{ $pinj_i->namadepan }} -{{$pinj_i->id}}</td>
                                             <td class="left top" align="center">{{$pinj_i->angsuran_pokok->nama_sistem}}</td>
-                                            <td class="left top" align="center">{{ Tanggal::tglIndo($pinj_i->tgl_cair) }}</td>
+                                            <td class="left top" align="center">{{ Tanggal::tglOjk($pinj_i->tgl_cair) }}</td>
                                                     @php
                                                         $ktgl1 = $pinj_i->tgl_cair;
                                                         $kpenambahan ="+".$pinj_i['jangka']." month";
                                                         $ktgl2 = date('Y-m-d', strtotime($kpenambahan, strtotime($ktgl1)));
                                                         $prooos = number_format($pinj_i->pros_jasa/$pinj_i->jangka,2);
                                                     @endphp
-                                            <td class="left top" align="center">{{ Tanggal::tglIndo($ktgl2)}}</td>
+                                            <td class="left top" align="center">{{ Tanggal::tglOjk($ktgl2)}}</td>
                                             <td class="left top">{{$prooos}}%</td>
                                             <td class="left top" align="center">per bulan</td>
                                             <td class="left top">{{number_format($pinj_i->alokasi)}}</td>

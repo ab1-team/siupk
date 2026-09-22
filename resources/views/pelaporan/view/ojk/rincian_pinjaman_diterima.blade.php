@@ -170,8 +170,8 @@ $empty = false;
         <tr style="border: 1px solid;" align="right" height="15px" class="style9">
             <td class="left top" align="center">{{ $nomor++ }}</td>
             <td colspan="2" class="left top" align="left">{{ $pinj->nama_kelompok }} - {{$pinj->id}}</td>
-            <td class="left top" align="center">{{ Tanggal::tglIndo($pinj->tgl_cair) }}</td>
-            <td class="left top">{{ Tanggal::tglIndo($atgl2) }}</td>
+            <td class="left top" align="center">{{ Tanggal::tglOjk($pinj->tgl_cair) }}</td>
+            <td class="left top">{{ Tanggal::tglOjk($atgl2) }}</td>
             <td class="left top" align="center">{{ $apros_jasa }}%</td>
             <td class="left top" align="center">per bulan</td>
         </tr>
@@ -288,8 +288,8 @@ $empty = false;
         <tr style="border: 1px solid;" align="right" height="15px" class="style9">
             <td class="left top" align="center">{{ $nomor++ }}</td>
             <td colspan="2" class="left top" align="left">{{ $pinj_i->namadepan }} - {{$pinj_i->id}}</td>
-            <td class="left top" align="center">{{ Tanggal::tglIndo($pinj_i->tgl_cair) }}</td>
-            <td class="left top">{{ Tanggal::tglIndo($atgl2) }}</td>
+            <td class="left top" align="center">{{ Tanggal::tglOjk($pinj_i->tgl_cair) }}</td>
+            <td class="left top">{{ Tanggal::tglOjk($atgl2) }}</td>
             <td class="left top" align="center">{{ $apros_jasa }}%</td>
             <td class="left top" align="center">per bulan</td>
         </tr>

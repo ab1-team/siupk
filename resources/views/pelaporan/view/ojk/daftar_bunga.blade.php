@@ -140,8 +140,8 @@
             $tgl2 = new DateTime($simp->tgl_buka);
             $selisih = $tgl2->diff($tgl1);
 
-            $tgl1 = Tanggal::tglIndo($simp->tgl_tutup);
-            $tgl2 = Tanggal::tglIndo($simp->tgl_buka);
+            $tgl1 = Tanggal::tglOjk($simp->tgl_tutup);
+            $tgl2 = Tanggal::tglOjk($simp->tgl_buka);
         @endphp
 
         <tr style="border: 1px solid;" align="right" height="15px" class="style9">

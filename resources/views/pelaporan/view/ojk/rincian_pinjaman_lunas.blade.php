@@ -269,8 +269,8 @@ $empty = false;
         $kpenambahan ="+".$pinj->jangka." month";
         $ktgl2 = date('Y-m-d', strtotime($kpenambahan, strtotime($ktgl1)));
                                             @endphp
-                    <td class="left top" align="center">{{ Tanggal::tglIndo($ktgl1) }}</td>
-                    <td class="left top" align="center">{{ Tanggal::tglIndo($ktgl2) }}</td>
+                    <td class="left top" align="center">{{ Tanggal::tglOjk($ktgl1) }}</td>
+                    <td class="left top" align="center">{{ Tanggal::tglOjk($ktgl2) }}</td>
                     <td class="left top">{{ $apros_jasa }}%</td>
                     <td class="left top" align="center">per bulan</td>
                     <td class="left top">{{ number_format($pinj->alokasi) }}</td>

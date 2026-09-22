@@ -264,8 +264,8 @@ $empty = false;
                     <td class="left top" align="left">{{ $pinj_i->namadepan }}-{{ $pinj_i->id }}</td>
                     <td class="left top" align="left">Pinjaman Modal Kerja</td>
                     <td class="left top" align="center">{{ $pinj_i->angsuran_pokok->nama_sistem }}</td>
-                    <td class="left top" align="center">{{ Tanggal::tglIndo($pinj_i->tgl_cair) }}</td>
-                    <td class="left top" align="center">{{ Tanggal::tglIndo($atgl2) }}</td>
+                    <td class="left top" align="center">{{ Tanggal::tglOjk($pinj_i->tgl_cair) }}</td>
+                    <td class="left top" align="center">{{ Tanggal::tglOjk($atgl2) }}</td>
                     <td class="left top">{{ $apros_jasa }}%</td>
                     <td class="left top" align="center">per bulan</td>
                     <td class="left top">{{ number_format($pinj_i->alokasi) }}</td>

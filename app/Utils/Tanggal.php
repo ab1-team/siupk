@@ -61,6 +61,18 @@ class Tanggal
         return $tgl[2] . ' ' . self::namaBulan($tanggal) . ' ' . $tgl[0];
     }
 
+    public static function tglOjk($tanggal)
+    {
+        if (empty($tanggal)) {
+            return date('d-m-Y');
+        }
+        $parts = explode('-', $tanggal);
+        if (count($parts) === 3 && strlen($parts[0]) === 4) {
+            return $parts[2] . '-' . $parts[1] . '-' . $parts[0];
+        }
+        return self::tglIndo($tanggal, 'DD-MM-YYYY');
+    }
+
     public static function tahun($tanggal)
     {
         $tgl = explode('-', $tanggal);

@@ -806,6 +806,9 @@ class KeuanganOJK
         $aset_produktif = 0;
         $aset_ekonomi = 0;
         $cadangan_piutang = 0;
+        $liabilitas_total = 0;
+        $liabilitas_lancar = 0;
+        $kas = 0;
         $rekening = Rekening::where('lev1', '1')->where('lev2', '1')->with([
             'kom_saldo' => function ($query) use ($data) {
                 $query->where('tahun', $data['tahun'])->where(function ($query) use ($data) {
@@ -824,10 +827,40 @@ class KeuanganOJK
             }
         }
 
+        // Hitung liabilitas & kas (lev1=2 = liabilitas, lev1=1 lev2=01 = kas)
+        $rekening_liab = Rekening::where('lev1', '2')->with([
+            'kom_saldo' => function ($query) use ($data) {
+                $query->where('tahun', $data['tahun'])->where(function ($query) use ($data) {
+                    $query->where('bulan', '0')->orwhere('bulan', $data['bulan']);
+                });
+            }
+        ])->get();
+        foreach ($rekening_liab as $rek) {
+            $saldo = $this->komSaldo($rek);
+            $liabilitas_total += $saldo;
+            if ($rek->lev2 == '1') {
+                $liabilitas_lancar += $saldo;
+            }
+        }
+
+        $rekening_kas = Rekening::where('lev1', '1')->where('lev2', '01')->with([
+            'kom_saldo' => function ($query) use ($data) {
+                $query->where('tahun', $data['tahun'])->where(function ($query) use ($data) {
+                    $query->where('bulan', '0')->orwhere('bulan', $data['bulan']);
+                });
+            }
+        ])->get();
+        foreach ($rekening_kas as $rek) {
+            $kas += $this->komSaldo($rek);
+        }
+
         return [
             'aset_ekonomi' => $aset_ekonomi,
             'aset_produktif' => $aset_produktif,
-            'cadangan_piutang' => $cadangan_piutang * -1
+            'cadangan_piutang' => $cadangan_piutang * -1,
+            'liabilitas_total' => $liabilitas_total,
+            'liabilitas_lancar' => $liabilitas_lancar,
+            'kas' => $kas,
         ];
     }
 

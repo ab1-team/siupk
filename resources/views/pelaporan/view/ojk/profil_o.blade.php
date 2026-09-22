@@ -257,7 +257,7 @@ $keuangan = new Keuangan();
     <tr>
         <td colspan="3">&nbsp;</td>
         <td align="center">
-            {{ $kec->nama_kec }}, {{ Tanggal::tglLatin($tgl_kondisi) }}
+            {{ $kec->nama_kec }}, {{ Tanggal::tglOjk($tgl_kondisi) }}
         </td>
     </tr>
     <tr>
