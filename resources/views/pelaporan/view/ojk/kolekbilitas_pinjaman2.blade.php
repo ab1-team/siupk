@@ -179,20 +179,18 @@ $t_kolek5 = 0;
                                 if ($wajib_pokok != '0') {
                                 $_kolek = $tunggakan_pokok / $wajib_pokok;
                                 }
-                                $kolek=0;
-                                if($jatuh_tempo!=0){
-                                $kolek = round((strtotime($tgl_kondisi) - strtotime($jatuh_tempo)) / (60 * 60 * 24)); //kolek menjadi selisih hari
-                                }
+                                $kolek = floor($_kolek + ($selisih - $angsuran_ke));
+                                $kolek_hari = $kolek * 30;
 
                                     $kolek1 = $kolek2 = $kolek3 = $kolek4 = $kolek5 = 0;
 
-                                    if ($kolek < 10) {
+                                    if ($kolek_hari < 90) {
                                         $kolek1 = $saldo_pokok;
-                                    } elseif ($kolek < 90) {
+                                    } elseif ($kolek_hari < 270) {
                                         $kolek2 = $saldo_pokok;
-                                    } elseif ($kolek < 120) {
+                                    } elseif ($kolek_hari < 360) {
                                         $kolek3 = $saldo_pokok;
-                                    } elseif ($kolek < 180) {
+                                    } elseif ($kolek_hari < 540) {
                                         $kolek4 = $saldo_pokok;
                                     } else {
                                         $kolek5 = $saldo_pokok;
@@ -206,7 +204,7 @@ $t_kolek5 = 0;
                                                 {{ $pinkel->id }}</td>
                                             <td class="t l b" align="right">{{ number_format($saldo_pokok) }}</td>
                                             <td class="t l b" align="right">{{ number_format($tunggakan_pokok) }}</td>
-                                            <td class="t l b" align="right">{{ $kolek }}</td>
+                                            <td class="t l b" align="right">{{ $kolek_hari }}</td>
                                             <td class="t l b" align="right">{{ number_format($kolek1) }}</td>
                                             <td class="t l b" align="right">{{ number_format($kolek2) }}</td>
                                             <td class="t l b" align="right">{{ number_format($kolek3) }}</td>
@@ -516,20 +514,18 @@ $t_kolek5 = 0;
                                 if ($wajib_pokok != '0') {
                                 $_kolek = $tunggakan_pokok / $wajib_pokok;
                                 }
-                                $kolek=0;
-                                if($jatuh_tempo!=0){
-                                $kolek = round((strtotime($tgl_kondisi) - strtotime($jatuh_tempo)) / (60 * 60 * 24)); //kolek menjadi selisih hari
-                                }
+                                $kolek = floor($_kolek + ($selisih - $angsuran_ke));
+                                $kolek_hari = $kolek * 30;
 
                                     $kolek1 = $kolek2 = $kolek3 = $kolek4 = $kolek5 = 0;
 
-                                    if ($kolek < 10) {
+                                    if ($kolek_hari < 90) {
                                         $kolek1 = $saldo_pokok;
-                                    } elseif ($kolek < 90) {
+                                    } elseif ($kolek_hari < 270) {
                                         $kolek2 = $saldo_pokok;
-                                    } elseif ($kolek < 120) {
+                                    } elseif ($kolek_hari < 360) {
                                         $kolek3 = $saldo_pokok;
-                                    } elseif ($kolek < 180) {
+                                    } elseif ($kolek_hari < 540) {
                                         $kolek4 = $saldo_pokok;
                                     } else {
                                         $kolek5 = $saldo_pokok;
@@ -543,7 +539,7 @@ $t_kolek5 = 0;
                                                 {{ $pinkel->id }}</td>
                                             <td class="t l b" align="right">{{ number_format($saldo_pokok) }}</td>
                                             <td class="t l b" align="right">{{ number_format($tunggakan_pokok) }}</td>
-                                            <td class="t l b" align="right">{{ $kolek }}</td>
+                                            <td class="t l b" align="right">{{ $kolek_hari }}</td>
                                             <td class="t l b" align="right">{{ number_format($kolek1) }}</td>
                                             <td class="t l b" align="right">{{ number_format($kolek2) }}</td>
                                             <td class="t l b" align="right">{{ number_format($kolek3) }}</td>
