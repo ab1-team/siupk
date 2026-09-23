@@ -139,13 +139,20 @@ $t_kolek3 = 0;
                                 if ($wajib_pokok != '0') {
                                 $_kolek = $tunggakan_pokok / $wajib_pokok;
                                 }
-                                $kolek = floor($_kolek + ($selisih - $angsuran_ke));
+                                $kolek_bulatan = floor($_kolek + ($selisih - $angsuran_ke));
+                                $tgl_jt_kontrak = $pinkel->getJatuhTempoEfektif() ?? date('Y-m-d', strtotime("+{$pinkel->jangka} month", strtotime($pinkel->tgl_cair)));
 
-    if ($kolek <= 3) {
+                                // POJK 19/2021: Prinsip Penilaian Terburuk
+                                $jenis_angsur = \App\Utils\KolekOjk::mapJenisAngsuran($pinkel->sistem_angsuran);
+                                $kolek_angsur = \App\Utils\KolekOjk::kolekByAngsuran($jenis_angsur, $kolek_bulatan);
+                                $kolek_jatuh_tempo = \App\Utils\KolekOjk::kolekByJatuhTempo($tgl_jt_kontrak, $tgl_kondisi);
+                                $kolek = \App\Utils\KolekOjk::worstCasePojk19($kolek_angsur, $kolek_jatuh_tempo, $jenis_angsur);
+
+    if ($kolek == 1) {
         $kolek1=$saldo_pokok; $kolek2=0; $kolek3=0; $kolek4=0; $kolek5=0; }
-    elseif ($kolek> 3 && $kolek <= 9) {
+    elseif ($kolek == 2) {
         $kolek1=0; $kolek2=$saldo_pokok; $kolek3=0; $kolek4=0; $kolek5=0; }
-    elseif($kolek> 9) {
+    elseif ($kolek == 3) {
             $kolek1 = 0;
             $kolek2 = 0;
             $kolek5 = 0;
@@ -382,13 +389,20 @@ $t_kolek3 = 0;
                                 if ($wajib_pokok != '0') {
                                 $_kolek = $tunggakan_pokok / $wajib_pokok;
                                 }
-                                $kolek = floor($_kolek + ($selisih - $angsuran_ke));
+                                $kolek_bulatan = floor($_kolek + ($selisih - $angsuran_ke));
+                                $tgl_jt_kontrak = $pinj_i->getJatuhTempoEfektif() ?? date('Y-m-d', strtotime("+{$pinj_i->jangka} month", strtotime($pinj_i->tgl_cair)));
 
-    if ($kolek <= 3) {
+                                // POJK 19/2021: Prinsip Penilaian Terburuk
+                                $jenis_angsur = \App\Utils\KolekOjk::mapJenisAngsuran($pinj_i->sistem_angsuran);
+                                $kolek_angsur = \App\Utils\KolekOjk::kolekByAngsuran($jenis_angsur, $kolek_bulatan);
+                                $kolek_jatuh_tempo = \App\Utils\KolekOjk::kolekByJatuhTempo($tgl_jt_kontrak, $tgl_kondisi);
+                                $kolek = \App\Utils\KolekOjk::worstCasePojk19($kolek_angsur, $kolek_jatuh_tempo, $jenis_angsur);
+
+    if ($kolek == 1) {
         $kolek1=$saldo_pokok; $kolek2=0; $kolek3=0; $kolek4=0; $kolek5=0; }
-    elseif ($kolek> 3 && $kolek <= 9) {
+    elseif ($kolek == 2) {
         $kolek1=0; $kolek2=$saldo_pokok; $kolek3=0; $kolek4=0; $kolek5=0; }
-    elseif($kolek> 9) {
+    elseif ($kolek == 3) {
             $kolek1 = 0;
             $kolek2 = 0;
             $kolek5 = 0;

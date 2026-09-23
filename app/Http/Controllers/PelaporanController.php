@@ -250,6 +250,12 @@ class PelaporanController extends Controller
         $data['tgl_kondisi'] = $data['tahun'] . '-' . $data['bulan'] . '-' . $data['hari'];
         $data['tanggal_kondisi'] = $kec->nama_kec . ', ' . Tanggal::tglLatin($data['tgl_kondisi']);
 
+        // Naikkan timeout eksekusi untuk render pelaporan OJK yang lambat (DRP, DRPL, KBP, dll)
+        // Laporan tertentu butuh 60-90 detik pertama kali render (cache miss)
+        // dengan banyak data pinjaman + kolek + rencana angsuran
+        @set_time_limit(300);
+        @ini_set('memory_limit', '1024M');
+
         // Simpan tgl_kondisi ke session untuk digunakan oleh scope Rekening::aktif()
         Session::put('tgl_kondisi_laporan', $data['tgl_kondisi']);
 
@@ -558,11 +564,11 @@ class PelaporanController extends Controller
 
         $data['laporan'] = 'Pinjaman Aktif';
         $view = view('pelaporan.view.ojk.daftar_rincian_pinjamanaktif', $data)->render();
-        \Illuminate\Support\Facades\Cache::put($cacheKey, $view, 300);
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $view, 60);
 
         if ($data['type'] == 'pdf') {
             $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape')->output();
-            \Illuminate\Support\Facades\Cache::put($cacheKeyPdf, $pdf, 300);
+            \Illuminate\Support\Facades\Cache::put($cacheKeyPdf, $pdf, 60);
             return response($pdf, 200, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="DRP.pdf"',
@@ -647,11 +653,11 @@ class PelaporanController extends Controller
 
         $data['laporan'] = 'Pinjaman Lunas';
         $view = view('pelaporan.view.ojk.rincian_pinjaman_lunas', $data)->render();
-        \Illuminate\Support\Facades\Cache::put($cacheKey, $view, 300);
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $view, 60);
 
         if ($data['type'] == 'pdf') {
             $pdf = PDF::loadHTML($view)->setPaper('A4', 'landscape')->output();
-            \Illuminate\Support\Facades\Cache::put($cacheKeyPdf, $pdf, 300);
+            \Illuminate\Support\Facades\Cache::put($cacheKeyPdf, $pdf, 60);
             return response($pdf, 200, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="DRPL.pdf"',
@@ -5429,7 +5435,7 @@ private function kolek_per_kelompok_mingguan(array $data)
     private function putOjkCache(string $cacheKey, string $type, $data)
     {
         $key = $type === 'pdf' ? $cacheKey . '_pdf' : $cacheKey;
-        \Illuminate\Support\Facades\Cache::put($key, $data, 300);
+        \Illuminate\Support\Facades\Cache::put($key, $data, 60);
     }
 
     // Kolektibilitas DPD POJK 41/2024 (5 kategori berbasis hari kalender)

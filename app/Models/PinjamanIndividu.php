@@ -118,4 +118,17 @@ class PinjamanIndividu extends Model
     {
         return $this->getConnection()->getSchemaBuilder()->getColumnListing($this->getTable());
     }
+
+    /**
+     * Delegasi ke PinjamanAnggota::getJatuhTempoEfektif() jika ada record terkait,
+     * jika tidak return null (loan belum ada data).
+     */
+    public function getJatuhTempoEfektif()
+    {
+        $pinj = $this->pinj_i;
+        if ($pinj) {
+            return $pinj->getJatuhTempoEfektif();
+        }
+        return null;
+    }
 }

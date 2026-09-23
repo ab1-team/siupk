@@ -123,4 +123,29 @@ class PinjamanKelompok extends Model
     {
         return $this->getConnection()->getSchemaBuilder()->getColumnListing($this->getTable());
     }
+
+    /**
+     * Hitung tanggal jatuh tempo efektif berdasarkan rencana angsuran.
+     *
+     * Logika (sesuai requirement user):
+     * 1. Jika status L/R/H -> pakai tgl_lunas langsung
+     * 2. Ambil baris di rencana_angsuran dengan angsuran_ke terbesar untuk loan ini
+     *    (tanpa filter target_pokok, hanya angsuran_ke terbesar)
+     * 3. Kembalikan jatuh_tempo dari baris tersebut
+     */
+    public function getJatuhTempoEfektif()
+    {
+        if (in_array($this->status, ['L', 'R', 'H'])) {
+            return $this->tgl_lunas;
+        }
+
+        $tableRencana = 'rencana_angsuran_' . Session::get('lokasi');
+
+        $row = RencanaAngsuran::on('mysql')
+            ->from($tableRencana)
+            ->where('loan_id', $this->id)
+            ->orderBy('id', 'DESC')
+            ->first();
+        return $row ? $row->jatuh_tempo : null;
+    }
 }

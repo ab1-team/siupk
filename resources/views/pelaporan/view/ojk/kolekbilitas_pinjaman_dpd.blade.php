@@ -49,15 +49,17 @@ $t_kolek5 = 0;
 <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; table-layout: fixed;">
     <tr>
         <th class="t l b" width="2%">No</th>
-        <th class="t l b" width="23%">Kelompok - Loan ID</th>
-        <th class="t l b" width="10%">Saldo</th>
-        <th class="t l b" width="10%">Tunggakan</th>
+        <th class="t l b" width="14%">Kelompok - Loan ID</th>
+        <th class="t l b" width="6%">Jangka (Bln)</th>
+        <th class="t l b" width="8%">Periode</th>
+        <th class="t l b" width="9%">Saldo</th>
+        <th class="t l b" width="9%">Tunggakan</th>
         <th class="t l b" width="3%">DPD</th>
-        <th class="t l b" width="10%">Lancar</th>
-        <th class="t l b" width="10%">DPK</th>
-        <th class="t l b" width="10%">Kurang Lancar</th>
-        <th class="t l b" width="10%">Diragukan</th>
-        <th class="t l b r" width="10%">Macet</th>
+        <th class="t l b" width="9%">Lancar</th>
+        <th class="t l b" width="9%">DPK</th>
+        <th class="t l b" width="9%">Kurang Lancar</th>
+        <th class="t l b" width="9%">Diragukan</th>
+        <th class="t l b r" width="3%">Macet</th>
     </tr>
 
     @foreach ($jpp->pinjaman_kelompok as $pinkel)
@@ -80,7 +82,7 @@ $t_kolek5 = 0;
         $t_kolek5 += $j_kolek5;
         @endphp
         <tr style="font-weight: bold;">
-            <td class="t l b" align="left" colspan="2">Jumlah {{ $nama_desa }}</td>
+            <td class="t l b" align="left" colspan="4">Jumlah {{ $nama_desa }}</td>
             <td class="t l b" align="right">{{ number_format($j_saldo) }}</td>
             <td class="t l b" align="right">{{ number_format($j_tunggakan_pokok) }}</td>
             <td class="t l b" align="right">&nbsp;</td>
@@ -93,7 +95,7 @@ $t_kolek5 = 0;
         @endif
 
         <tr style="font-weight: bold;">
-            <td class="t l b r" colspan="10" align="left">{{ $pinkel->kode_desa }}.
+            <td class="t l b r" colspan="12" align="left">{{ $pinkel->kode_desa }}.
                 {{ $pinkel->nama_desa }}</td>
         </tr>
         @php
@@ -188,6 +190,8 @@ $t_kolek5 = 0;
                                             <td class="t l b" align="center">{{ $nomor++ }}</td>
                                             <td class="t l b" align="left">{{ $pinkel->nama_kelompok }} -
                                                 {{ $pinkel->id }}</td>
+                                            <td class="t l b" align="center">{{ $pinkel->jangka }}</td>
+                                            <td class="t l b" align="center">{{ \App\Utils\Tanggal::tglOjk($pinkel->tgl_lunas) }}</td>
                                             <td class="t l b" align="right">{{ number_format($saldo_pokok) }}</td>
                                             <td class="t l b" align="right">{{ number_format($tunggakan_pokok) }}</td>
                                             <td class="t l b" align="right">{{ $dpd }}</td>
@@ -225,7 +229,7 @@ $t_kolek5 = 0;
                                         $t_kolek5 += $j_kolek5;
                                         @endphp
                                         <tr style="font-weight: bold;">
-                                            <td class="t l b" align="left" colspan="2">Jumlah {{ $nama_desa }}</td>
+                                            <td class="t l b" align="left" colspan="4">Jumlah {{ $nama_desa }}</td>
                                             <td class="t l b" align="right">{{ number_format($j_saldo) }}</td>
                                             <td class="t l b" align="right">{{ number_format($j_tunggakan_pokok) }}</td>
                                             <td class="t l b" align="right">&nbsp;</td>
@@ -243,7 +247,7 @@ $t_kolek5 = 0;
                                         }
                                         @endphp
                                         <tr>
-                                            <td colspan="10" style="padding: 0px !important;">
+                                            <td colspan="12" style="padding: 0px !important;">
                                                 <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; table-layout: fixed;">
 
                                                     @php
@@ -253,18 +257,18 @@ $t_kolek5 = 0;
                                                     }
                                                     @endphp
                                                     <tr>
-                                                        <td width="25%" class="t l b" align="center" height="20">J U M L A H</td>
-                                                        <td width="10%" class="t l b" align="right">{{ number_format($t_saldo) }}</td>
-                                                        <td width="10%" class="t l b" align="right">{{ number_format($t_tunggakan_pokok) }}</td>
+                                                        <td width="30%" class="t l b" align="center" height="20">J U M L A H</td>
+                                                        <td width="9%" class="t l b" align="right">{{ number_format($t_saldo) }}</td>
+                                                        <td width="9%" class="t l b" align="right">{{ number_format($t_tunggakan_pokok) }}</td>
                                                         <td width="3%" class="t l b" align="center">&nbsp;</td>
-                                                        <td width="10%" class="t l b" align="right">{{ number_format($t_kolek1) }}</td>
-                                                        <td width="10%" class="t l b" align="right">{{ number_format($t_kolek2) }}</td>
-                                                        <td width="10%" class="t l b" align="right">{{ number_format($t_kolek3) }}</td>
-                                                        <td width="10%" class="t l b" align="right">{{ number_format($t_kolek4) }}</td>
-                                                        <td width="10%" class="t l b r" align="right">{{ number_format($t_kolek5) }}</td>
+                                                        <td width="9%" class="t l b" align="right">{{ number_format($t_kolek1) }}</td>
+                                                        <td width="9%" class="t l b" align="right">{{ number_format($t_kolek2) }}</td>
+                                                        <td width="9%" class="t l b" align="right">{{ number_format($t_kolek3) }}</td>
+                                                        <td width="9%" class="t l b" align="right">{{ number_format($t_kolek4) }}</td>
+                                                        <td width="3%" class="t l b r" align="right">{{ number_format($t_kolek5) }}</td>
                                                     </tr>
                                                     <tr>
-                                                        <td colspan="10" style="padding-top: 16px;">
+                                                        <td colspan="12" style="padding-top: 16px;">
                                                             {!! json_decode(str_replace('{tanggal}', $tanggal_kondisi, $kec->ttd->tanda_tangan_pelaporan), true) !!}
                                                         </td>
                                                     </tr>
@@ -347,7 +351,7 @@ $t_kolek5 = 0;
                                                 $t_kolek5 += $j_kolek5;
                                                 @endphp
                                                 <tr style="font-weight: bold;">
-                                                    <td class="t l b" align="left" colspan="2">Jumlah {{ $nama_desa }}</td>
+                                                    <td class="t l b" align="left" colspan="4">Jumlah {{ $nama_desa }}</td>
                                                     <td class="t l b" align="right">{{ number_format($j_saldo) }}</td>
                                                     <td class="t l b" align="right">{{ number_format($j_tunggakan_pokok) }}</td>
                                                     <td class="t l b" align="right">&nbsp;</td>
@@ -360,7 +364,7 @@ $t_kolek5 = 0;
                                                 @endif
 
                                                 <tr style="font-weight: bold;">
-                                                    <td class="t l b r" colspan="10" align="left">{{ $pinkel->kode_desa }}.
+                                                    <td class="t l b r" colspan="12" align="left">{{ $pinkel->kode_desa }}.
                                                         {{ $pinkel->nama_desa }}</td>
                                                 </tr>
                                                 @php
@@ -444,6 +448,8 @@ $t_kolek5 = 0;
                                                 <tr>
                                                     <td class="t l b" align="center">{{ $nomor++ }}</td>
                                                     <td class="t l b" align="left">{{ $pinkel->namadepan }} - {{ $pinkel->id }}</td>
+                                                    <td class="t l b" align="center">{{ $pinkel->jangka }}</td>
+                                                    <td class="t l b" align="center">{{ \App\Utils\Tanggal::tglOjk($pinkel->tgl_lunas) }}</td>
                                                     <td class="t l b" align="right">{{ number_format($saldo_pokok) }}</td>
                                                     <td class="t l b" align="right">{{ number_format($tunggakan_pokok) }}</td>
                                                     <td class="t l b" align="right">{{ $dpd }}</td>
@@ -480,7 +486,7 @@ $t_kolek5 = 0;
                                                 $t_kolek5 += $j_kolek5;
                                                 @endphp
                                                 <tr style="font-weight: bold;">
-                                                    <td class="t l b" align="left" colspan="2">Jumlah {{ $nama_desa }}</td>
+                                                    <td class="t l b" align="left" colspan="4">Jumlah {{ $nama_desa }}</td>
                                                     <td class="t l b" align="right">{{ number_format($j_saldo) }}</td>
                                                     <td class="t l b" align="right">{{ number_format($j_tunggakan_pokok) }}</td>
                                                     <td class="t l b" align="right">&nbsp;</td>

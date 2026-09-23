@@ -22,15 +22,24 @@
     *   LKM yang mengelola Simpanan dan/atau Pinjaman diterima **di atas Rp200.000.000,00** wajib membentuk PPAP [63].
     *   Tarif PPAP Minimum: Lancar (0%), Diragukan (50%), Macet (100%) dari sisa pokok [63].
 *   **Mitigasi Agunan**: PPAP untuk kualitas Diragukan dan Macet dihitung dari sisa pokok setelah dikurangi dengan nilai penjaminan kredit atau agunan yang diakui [66].
+*   **Prinsip Penilaian Terburuk (Worst-Case Evaluation Rule)**: Untuk jenis angsuran **Harian/Mingguan** dan **Bulanan/Selapanan**, POJK 19/2021 (Format 3) menetapkan bahwa apabila hasil penilaian kualitas pinjaman berdasarkan tunggakan angsuran berbeda dengan hasil penilaian berdasarkan jatuh tempo kontrak pinjaman, maka kualitas pinjaman yang berlaku adalah hasil penilaian yang **lebih buruk** di antara keduanya. Aturan ini mencegah pinjaman yang kontraknya sudah kadaluarsa (jatuh tempo terlampaui > 2 bulan) tetap tercatat sebagai Lancar/Diragukan hanya karena jumlah angsuran yang tertunggak masih sedikit. Untuk jenis angsuran **Musiman**, prinsip ini **tidak berlaku** — kolektibilitas ditentukan murni dari satu parameter, yaitu jumlah kali pembayaran yang tertunggak, karena pada pinjaman musiman siklus pembayaran pada dasarnya bertepatan dengan jatuh tempo kontrak (pembayaran dilakukan sekaligus di akhir musim), sehingga tidak ada dua hasil penilaian terpisah yang perlu dibandingkan. Ketentuan ini merupakan instrumen pengawasan wajib, agar LKM segera membentuk cadangan PPAP yang cukup dan tidak menyembunyikan risiko kredit macet.
 
 ### 2. Parameter Pembobotan & Hari Tunggakan (POJK 19/2021)
-Penetapan kualitas menggunakan parameter hari keterlambatan/tunggakan angsuran [142]:
+Penetapan kualitas menggunakan parameter hari keterlambatan/tunggakan angsuran [142]. Tabel berikut berlaku untuk jenis angsuran **Harian/Mingguan** dan **Bulanan/Selapanan**, di mana kolektibilitas ditentukan dari hasil yang lebih buruk (dan/atau) antara tunggakan angsuran dan jatuh tempo kontrak:
 
-| Kualitas / Kolektibilitas | Jenis Angsuran | Parameter Tunggakan Pokok & Bunga | Parameter Jatuh Tempo Pinjaman |
-| :--- | :--- | :--- | :--- |
-| **LANCAR** | Harian / Mingguan <br> Bulanan / Selapanan <br> Musiman | Tunggakan $\le$ 3 bulan <br> Tunggakan $\le$ 6 kali angsuran <br> Tunggakan 1 kali pembayaran | dan/atau <br> Jatuh tempo $\le$ 1 bulan |
-| **DIRAGUKAN** | Harian / Mingguan <br> Bulanan / Selapanan <br> Musiman | Tunggakan > 3 bulan s.d. 6 bulan <br> Tunggakan > 6 kali s.d. 12 kali <br> Tunggakan 2 kali pembayaran | dan/atau <br> Jatuh tempo > 1 bulan s.d. 2 bulan |
-| **MACET** | Harian / Mingguan <br> Bulanan / Selapanan <br> Musiman | Tunggakan > 6 bulan <br> Tunggakan > 12 kali angsuran <br> Tunggakan > 2 kali pembayaran | dan/atau <br> Jatuh tempo > 2 bulan |
+| Kualitas / Kolektibilitas | Jenis Angsuran | Parameter Tunggakan Pokok & Bunga | | Parameter Jatuh Tempo Pinjaman |
+| :--- | :--- | :--- | :---: | :--- |
+| **LANCAR** | Harian / Mingguan | Tunggakan $\le$ 3 bulan | dan/atau | Jatuh tempo $\le$ 1 bulan |
+| | Bulanan / Selapanan | Tunggakan $\le$ 6 kali angsuran | dan/atau | Jatuh tempo $\le$ 1 bulan |
+| **DIRAGUKAN** | Harian / Mingguan | Tunggakan > 3 bulan s.d. 6 bulan | dan/atau | Jatuh tempo > 1 bulan s.d. 2 bulan |
+| | Bulanan / Selapanan | Tunggakan > 6 kali s.d. 12 kali angsuran | dan/atau | Jatuh tempo > 1 bulan s.d. 2 bulan |
+| **MACET** | Harian / Mingguan | Tunggakan > 6 bulan | dan/atau | Jatuh tempo > 2 bulan |
+| | Bulanan / Selapanan | Tunggakan > 12 kali angsuran | dan/atau | Jatuh tempo > 2 bulan |
+
+*Catatan Khusus Musiman*: Berbeda dari dua jenis angsuran di atas, **Musiman** hanya menggunakan **satu parameter tunggal** — jumlah kali pembayaran yang tertunggak — tanpa kombinasi "dan/atau" dengan jatuh tempo:
+*   **Lancar**: Terdapat tunggakan 1 (satu) kali pembayaran.
+*   **Diragukan**: Terdapat tunggakan 2 (dua) kali pembayaran.
+*   **Macet**: Terdapat tunggakan pembayaran lebih dari 2 (dua) kali.
 
 *Catatan Khusus Mudharabah/Musyarakah (Syariah)*: 
 *   **Diragukan**: Kriteria di atas terpenuhi, ATAU rasio Realisasi Bagi Hasil (RBH) terhadap Proyeksi Bagi Hasil (PBH) $\le 30\%$ selama 3 periode pembayaran [144].
@@ -48,11 +57,17 @@ Untuk menyusun Laporan Kolektibilitas berdasarkan POJK 19/2021 di Excel, gunakan
 | **E** | Tunggakan Hari (NH) | Integer | Jumlah hari terlambat bayar pokok/bunga |
 | **F** | Jumlah Bulan Tunggakan | Decimal | Formula: `=E/30` |
 | **G** | Jumlah Angsuran Tertunggak | Integer | Input manual jumlah kali angsuran terlewati |
-| **H** | Kolektibilitas | Text | **Formula Otomatis**: `=IF(C="Harian/Mingguan", IF(F<=3, "Lancar", IF(F<=6, "Diragukan", "Macet")), IF(C="Bulanan", IF(G<=6, "Lancar", IF(G<=12, "Diragukan", "Macet")), IF(G<=1, "Lancar", IF(G<=2, "Diragukan", "Macet"))))` |
-| **I** | Nilai Agunan yang Sah | Currency | Nilai agunan setelah dikalikan batas haircut OJK (min. 120% loan value) [117] |
-| **J** | Sisa Pokok setelah Agunan | Currency | **Formula**: `=MAX(0, D - I)` |
-| **K** | % PPAP Wajib | Percentage | **Formula**: `=IF(H="Lancar", 0%, IF(H="Diragukan", 50%, 100%))` |
-| **L** | PPAP Wajib Terbentuk | Currency | **Formula**: `=J * K` |
+| **H** | Tanggal Jatuh Tempo Kontrak | Date | Tanggal berakhirnya jangka waktu perjanjian pinjaman (bukan tanggal angsuran) |
+| **I** | Bulan Sejak Jatuh Tempo | Decimal | **Formula**: `=IF(TODAY()>H, (TODAY()-H)/30, 0)` — 0 jika kontrak belum jatuh tempo |
+| **J** | Kolektibilitas — Basis Tunggakan Angsuran | Text | **Formula**: `=IF(C="Harian/Mingguan", IF(F<=3, "Lancar", IF(F<=6, "Diragukan", "Macet")), IF(C="Bulanan", IF(G<=6, "Lancar", IF(G<=12, "Diragukan", "Macet")), IF(G<=1, "Lancar", IF(G<=2, "Diragukan", "Macet"))))` |
+| **K** | Kolektibilitas — Basis Jatuh Tempo | Text | **Formula**: `=IF(C="Musiman", "N/A", IF(I<=1, "Lancar", IF(I<=2, "Diragukan", "Macet")))` — tidak berlaku (N/A) untuk Musiman, karena Musiman tidak memakai parameter jatuh tempo terpisah |
+| **L** | **Kolektibilitas Final (Prinsip Penilaian Terburuk)** | Text | **Formula Otomatis**: `=IF(C="Musiman", J, CHOOSE(MAX(MATCH(J,{"Lancar";"Diragukan";"Macet"},0),MATCH(K,{"Lancar";"Diragukan";"Macet"},0)),"Lancar","Diragukan","Macet"))` — untuk Musiman, hasil = kolom J apa adanya; untuk Harian/Mingguan & Bulanan/Selapanan, mengambil hasil yang **lebih buruk** antara kolom J dan K |
+| **M** | Nilai Agunan yang Sah | Currency | Nilai agunan setelah dikalikan batas haircut OJK (min. 120% loan value) [117] |
+| **N** | Sisa Pokok setelah Agunan | Currency | **Formula**: `=MAX(0, D - M)` |
+| **O** | % PPAP Wajib | Percentage | **Formula**: `=IF(L="Lancar", 0%, IF(L="Diragukan", 50%, 100%))` — mengacu ke Kolektibilitas **Final** (kolom L), bukan kolom J |
+| **P** | PPAP Wajib Terbentuk | Currency | **Formula**: `=N * O` |
+
+> **Catatan penting**: Kolom **L (Kolektibilitas Final)** adalah kolom yang wajib dipakai untuk pelaporan resmi dan perhitungan PPAP — bukan kolom J saja. Untuk jenis angsuran Harian/Mingguan dan Bulanan/Selapanan, kolom J saja tidak cukup karena hanya melihat frekuensi angsuran — tanpa kolom K/L, pinjaman yang kontraknya sudah kadaluarsa >2 bulan tetap bisa lolos tercatat Lancar/Diragukan. Untuk Musiman, kolom K sengaja diabaikan (N/A) karena parameter jatuh tempo tidak berlaku terpisah pada jenis angsuran ini.
 
 ---
 
@@ -279,6 +294,7 @@ D. KEPUTUSAN STATUS PENGAWASAN (POJK 49/2024)
 | :--- | :--- | :--- |
 | **Kolektibilitas Pinjaman** | Terdiri atas **3 Kategori** (Lancar, Diragukan, Macet) [59]. | Diperluas menjadi **5 Kategori** (Lancar, DPK, Kurang Lancar, Diragukan, Macet) [4]. |
 | **Parameter Tunggakan** | **Sangat rumit**, dibedakan rinci menurut frekuensi jenis angsuran nasabah (harian, bulanan, musiman) [142]. | **Sederhana & Seragam**, murni berbasis kumulatif hari kalender terlambat *(Days Past Due/DPD)* [24]. |
+| **Prinsip Penilaian Terburuk** | **Berlaku wajib**: kolektibilitas diambil dari hasil yang lebih buruk antara evaluasi tunggakan angsuran vs. jatuh tempo kontrak [1]. | **Tidak relevan lagi**: karena tunggakan angsuran dan jatuh tempo sudah disatukan ke dalam satu parameter tunggal (DPD), tidak ada lagi dua hasil evaluasi yang perlu dibandingkan [4]. |
 | **Aspek Penilaian TKS** | Hanya menilai **2 Aspek Utama** (Rasio Likuiditas & Solvabilitas) [17, 68]. | Komprehensif berbasis **5 Aspek** (Permodalan, Kualitas Aset, Rentabilitas, Likuiditas, Manajemen) [26, 300]. |
 | **Batas Maksimal NPL** | LKM wajib menjaga rasio pinjaman bermasalah maksimal **10%** (berbasis NPL Bruto) [61]. | Penilaian beralih menggunakan **NPL Neto dengan batas maksimal diperketat menjadi 5%** [33]. |
 | **Agunan dalam Rasio NPL**| Agunan fisik **tidak berpengaruh** pada perhitungan persentase NPL LKM. | Nilai agunan fisik & asuransi kredit **diakui sebagai pengurang langsung** dalam perhitungan Rasio NPL Neto [304]. |

@@ -46,7 +46,9 @@ $t_kolek3 = 0;
 <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; table-layout: fixed;">
     <tr>
         <th class="t l b" width="2%">No</th>
-        <th class="t l b" width="23%">Kelompok - Loan ID</th>
+        <th class="t l b" width="14%">Kelompok - Loan ID</th>
+        <th class="t l b" width="6%">Jangka (Bln)</th>
+        <th class="t l b" width="8%">Periode</th>
         <th class="t l b" width="10%">Alokasi</th>
         <th class="t l b" width="10%">Saldo</th>
         <th class="t l b" width="10%">Tunggakan</th>
@@ -73,7 +75,7 @@ $t_kolek3 = 0;
         $t_kolek3 += $j_kolek3;
         @endphp
         <tr style="font-weight: bold;">
-            <td class="t l b" align="left" colspan="2">Jumlah {{ $nama_desa }}</td>
+            <td class="t l b" align="left" colspan="4">Jumlah {{ $nama_desa }}</td>
             <td class="t l b" align="right">{{ number_format($j_alokasi) }}</td>
             <td class="t l b" align="right">{{ number_format($j_saldo) }}</td>
             <td class="t l b" align="right">{{ number_format($j_tunggakan_pokok) }}</td>
@@ -84,7 +86,7 @@ $t_kolek3 = 0;
         @endif
 
         <tr style="font-weight: bold;">
-            <td class="t l b r" colspan="8" align="left">{{ $pinkel->kode_desa }}.
+            <td class="t l b r" colspan="10" align="left">{{ $pinkel->kode_desa }}.
                 {{ $pinkel->nama_desa }}</td>
         </tr>
         @php
@@ -167,13 +169,20 @@ $t_kolek3 = 0;
                                 if ($wajib_pokok != '0') {
                                 $_kolek = $tunggakan_pokok / $wajib_pokok;
                                 }
-                                $kolek = floor($_kolek + ($selisih - $angsuran_ke));
+                                $kolek_bulatan = floor($_kolek + ($selisih - $angsuran_ke));
+                                $tgl_jt_kontrak = $pinkel->getJatuhTempoEfektif() ?? date('Y-m-d', strtotime("+{$pinkel->jangka} month", strtotime($pinkel->tgl_cair)));
 
-    if ($kolek <= 3) {
+                                // POJK 19/2021: Prinsip Penilaian Terburuk
+                                $jenis_angsur = \App\Utils\KolekOjk::mapJenisAngsuran($pinkel->sistem_angsuran);
+                                $kolek_angsur = \App\Utils\KolekOjk::kolekByAngsuran($jenis_angsur, $kolek_bulatan);
+                                $kolek_jatuh_tempo = \App\Utils\KolekOjk::kolekByJatuhTempo($tgl_jt_kontrak, $tgl_kondisi);
+                                $kolek = \App\Utils\KolekOjk::worstCasePojk19($kolek_angsur, $kolek_jatuh_tempo, $jenis_angsur);
+
+    if ($kolek == 1) {
         $kolek1=$saldo_pokok; $kolek2=0; $kolek3=0; $kolek4=0; $kolek5=0; }
-    elseif ($kolek> 3 && $kolek <= 9) {
+    elseif ($kolek == 2) {
         $kolek1=0; $kolek2=$saldo_pokok; $kolek3=0; $kolek4=0; $kolek5=0; }
-    elseif($kolek> 9) {
+    elseif ($kolek == 3) {
             $kolek1 = 0;
             $kolek2 = 0;
             $kolek5 = 0;
@@ -187,6 +196,8 @@ $t_kolek3 = 0;
                                             <td class="t l b" align="center">{{ $nomor++ }}</td>
                                             <td class="t l b" align="left">{{ $pinkel->nama_kelompok }} -
                                                 {{ $pinkel->id }}</td>
+                                            <td class="t l b" align="center">{{ $pinkel->jangka }}</td>
+                                            <td class="t l b" align="center">{{ \App\Utils\Tanggal::tglOjk($tgl_jt_kontrak) }}</td>
                                             <td class="t l b" align="right">{{ number_format($pinkel->alokasi) }}</td>
                                             <td class="t l b" align="right">{{ number_format($saldo_pokok) }}</td>
                                             <td class="t l b" align="right">{{ number_format($tunggakan_pokok) }}</td>
@@ -218,7 +229,7 @@ $t_kolek3 = 0;
                                         $t_kolek3 += $j_kolek3;
                                         @endphp
                                         <tr style="font-weight: bold;">
-                                            <td class="t l b" align="left" colspan="2">Jumlah {{ $nama_desa }}</td>
+                                            <td class="t l b" align="left" colspan="4">Jumlah {{ $nama_desa }}</td>
                                             <td class="t l b" align="right">{{ number_format($j_alokasi) }}</td>
                                             <td class="t l b" align="right">{{ number_format($j_saldo) }}</td>
                                             <td class="t l b" align="right">{{ number_format($j_tunggakan_pokok) }}</td>
@@ -234,7 +245,7 @@ $t_kolek3 = 0;
                                         }
                                         @endphp
                                         <tr style="font-weight: bold;">
-                                            <td class="t l b" align="center" height="20" colspan="2">J U M L A H</td>
+                                            <td class="t l b" align="center" height="20" colspan="4">J U M L A H</td>
                                             <td class="t l b" align="right">{{ number_format($t_alokasi) }}</td>
                                             <td class="t l b" align="right">{{ number_format($t_saldo) }}</td>
                                             <td class="t l b r" align="right">
@@ -245,7 +256,7 @@ $t_kolek3 = 0;
                                             <td class="t l b r" align="right">{{ number_format($t_kolek3) }}</td>
                                         </tr>
                                         <tr style="font-weight: bold;">
-                                            <td class="t l b" align="center" colspan="2" rowspan="2" height="20">Resiko
+                                            <td class="t l b" align="center" colspan="4" rowspan="2" height="20">Resiko
                                                 Pinjaman</td>
                                             <td class="t l b" colspan="3" align="center">(Lancar + Diragukan + Macet)
                                             </td>
@@ -265,11 +276,11 @@ $t_kolek3 = 0;
                                                 {{ number_format(($t_kolek3 * 100) / 100) }}</td>
                                         </tr>
                                         <tr>
-                                            <td colspan="8" style="padding: 0px !important;">
+                                            <td colspan="10" style="padding: 0px !important;">
                                                 <table border="0" width="100%" cellspacing="0" cellpadding="0"
                                                     style="font-size: 11px; table-layout: fixed;">
                                                     <tr>
-                                                        <td colspan="8">
+                                                        <td colspan="10">
                                                             <div style="margin-top: 16px;"></div>
                                                             {!! json_decode(str_replace('{tanggal}', $tanggal_kondisi,
                                                             $kec->ttd->tanda_tangan_pelaporan), true) !!}
@@ -324,7 +335,9 @@ $t_kolek3 = 0;
 <table border="0" width="100%" cellspacing="0" cellpadding="0" style="font-size: 11px; table-layout: fixed;">
     <tr>
         <th class="t l b" width="2%">No</th>
-        <th class="t l b" width="23%">Kelompok - Loan ID</th>
+        <th class="t l b" width="14%">Kelompok - Loan ID</th>
+        <th class="t l b" width="6%">Jangka (Bln)</th>
+        <th class="t l b" width="8%">Periode</th>
         <th class="t l b" width="10%">Alokasi</th>
         <th class="t l b" width="10%">Saldo</th>
         <th class="t l b" width="10%">Tunggakan</th>
@@ -351,7 +364,7 @@ $t_kolek3 = 0;
         $t_kolek3 += $j_kolek3;
         @endphp
         <tr style="font-weight: bold;">
-            <td class="t l b" align="left" colspan="2">Jumlah {{ $nama_desa }}</td>
+            <td class="t l b" align="left" colspan="4">Jumlah {{ $nama_desa }}</td>
             <td class="t l b" align="right">{{ number_format($j_alokasi) }}</td>
             <td class="t l b" align="right">{{ number_format($j_saldo) }}</td>
             <td class="t l b" align="right">{{ number_format($j_tunggakan_pokok) }}</td>
@@ -362,7 +375,7 @@ $t_kolek3 = 0;
         @endif
 
         <tr style="font-weight: bold;">
-            <td class="t l b r" colspan="8" align="left">{{ $pinj_i->kode_desa }}.
+            <td class="t l b r" colspan="10" align="left">{{ $pinj_i->kode_desa }}.
                 {{ $pinj_i->nama_desa }}</td>
         </tr>
         @php
@@ -445,13 +458,20 @@ $t_kolek3 = 0;
                                 if ($wajib_pokok != '0') {
                                 $_kolek = $tunggakan_pokok / $wajib_pokok;
                                 }
-                                $kolek = floor($_kolek + ($selisih - $angsuran_ke));
+                                $kolek_bulatan = floor($_kolek + ($selisih - $angsuran_ke));
+                                $tgl_jt_kontrak = $pinj_i->getJatuhTempoEfektif() ?? date('Y-m-d', strtotime("+{$pinj_i->jangka} month", strtotime($pinj_i->tgl_cair)));
 
-    if ($kolek <= 3) {
+                                // POJK 19/2021: Prinsip Penilaian Terburuk
+                                $jenis_angsur = \App\Utils\KolekOjk::mapJenisAngsuran($pinj_i->sistem_angsuran);
+                                $kolek_angsur = \App\Utils\KolekOjk::kolekByAngsuran($jenis_angsur, $kolek_bulatan);
+                                $kolek_jatuh_tempo = \App\Utils\KolekOjk::kolekByJatuhTempo($tgl_jt_kontrak, $tgl_kondisi);
+                                $kolek = \App\Utils\KolekOjk::worstCasePojk19($kolek_angsur, $kolek_jatuh_tempo, $jenis_angsur);
+
+    if ($kolek == 1) {
         $kolek1=$saldo_pokok; $kolek2=0; $kolek3=0; $kolek4=0; $kolek5=0; }
-    elseif ($kolek> 3 && $kolek <= 9) {
+    elseif ($kolek == 2) {
         $kolek1=0; $kolek2=$saldo_pokok; $kolek3=0; $kolek4=0; $kolek5=0; }
-    elseif($kolek> 9) {
+    elseif ($kolek == 3) {
             $kolek1 = 0;
             $kolek2 = 0;
             $kolek5 = 0;
@@ -465,6 +485,8 @@ $t_kolek3 = 0;
                                             <td class="t l b" align="center">{{ $nomor++ }}</td>
                                             <td class="t l b" align="left">{{ $pinj_i->namadepan }} -
                                                 {{ $pinj_i->id }}</td>
+                                            <td class="t l b" align="center">{{ $pinj_i->jangka }}</td>
+                                            <td class="t l b" align="center">{{ \App\Utils\Tanggal::tglOjk($tgl_jt_kontrak) }}</td>
                                             <td class="t l b" align="right">{{ number_format($pinj_i->alokasi) }}</td>
                                             <td class="t l b" align="right">{{ number_format($saldo_pokok) }}</td>
                                             <td class="t l b" align="right">{{ number_format($tunggakan_pokok) }}</td>
@@ -496,7 +518,7 @@ $t_kolek3 = 0;
                                         $t_kolek3 += $j_kolek3;
                                         @endphp
                                         <tr style="font-weight: bold;">
-                                            <td class="t l b" align="left" colspan="2">Jumlah {{ $nama_desa }}</td>
+                                            <td class="t l b" align="left" colspan="4">Jumlah {{ $nama_desa }}</td>
                                             <td class="t l b" align="right">{{ number_format($j_alokasi) }}</td>
                                             <td class="t l b" align="right">{{ number_format($j_saldo) }}</td>
                                             <td class="t l b" align="right">{{ number_format($j_tunggakan_pokok) }}</td>
@@ -512,7 +534,7 @@ $t_kolek3 = 0;
                                         }
                                         @endphp
                                         <tr style="font-weight: bold;">
-                                            <td class="t l b" align="center" height="20" colspan="2">J U M L A H</td>
+                                            <td class="t l b" align="center" height="20" colspan="4">J U M L A H</td>
                                             <td class="t l b" align="right">{{ number_format($t_alokasi) }}</td>
                                             <td class="t l b" align="right">{{ number_format($t_saldo) }}</td>
                                             <td class="t l b r" align="right">
@@ -523,7 +545,7 @@ $t_kolek3 = 0;
                                             <td class="t l b r" align="right">{{ number_format($t_kolek3) }}</td>
                                         </tr>
                                         <tr style="font-weight: bold;">
-                                            <td class="t l b" align="center" colspan="2" rowspan="2" height="20">Resiko
+                                            <td class="t l b" align="center" colspan="4" rowspan="2" height="20">Resiko
                                                 Pinjaman</td>
                                             <td class="t l b" colspan="3" align="center">(Lancar + Diragukan + Macet)
                                             </td>
@@ -543,11 +565,11 @@ $t_kolek3 = 0;
                                                 {{ number_format(($t_kolek3 * 100) / 100) }}</td>
                                         </tr>
                                         <tr>
-                                            <td colspan="8" style="padding: 0px !important;">
+                                            <td colspan="10" style="padding: 0px !important;">
                                                 <table border="0" width="100%" cellspacing="0" cellpadding="0"
                                                     style="font-size: 11px; table-layout: fixed;">
                                                     <tr>
-                                                        <td colspan="8">
+                                                        <td colspan="10">
                                                             <div style="margin-top: 16px;"></div>
                                                             {!! json_decode(str_replace('{tanggal}', $tanggal_kondisi,
                                                             $kec->ttd->tanda_tangan_pelaporan), true) !!}
