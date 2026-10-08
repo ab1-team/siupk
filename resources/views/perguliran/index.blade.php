@@ -334,7 +334,7 @@
         $('#TbLunas').on('click', 'tbody tr', function(e) {
             var data = tbLunas.row(this).data();
 
-            window.location.href = '/detail/' + data.id
+            window.location.href = '/lunas/' + data.id
         })
     </script>
 @endsection
