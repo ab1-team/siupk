@@ -148,19 +148,28 @@
 @section('content')
     <div class="card mb-3">
         <div class="card-body p-3">
-            <h5 class="mb-1">
-                Anggota {{ $perguliran_i->anggota->namadepan }} Loan ID. {{ $perguliran_i->id }}
-                ({{ $perguliran_i->jpp->nama_jpp }})
-            </h5>
-            <p class="mb-0">
-                <span class="badge badge-{{ $perguliran_i->sts->warna_status }}">{{ $perguliran_i->anggota->nia }}</span>
-                <span
-                    class="badge badge-{{ $perguliran_i->sts->warna_status }}">{{ $perguliran_i->anggota->alamat_anggota }}</span>
-                <span class="badge badge-{{ $perguliran_i->sts->warna_status }}">
-                    {{ $perguliran_i->anggota->d->sebutan_desa->sebutan_desa }}
-                    {{ $perguliran_i->anggota->d->nama_desa }}
-                </span>
-            </p>
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="mb-1">
+                        Anggota {{ $perguliran_i->anggota->namadepan }} Loan ID. {{ $perguliran_i->id }}
+                        ({{ $perguliran_i->jpp->nama_jpp }})
+                    </h5>
+                    <p class="mb-0">
+                        <span class="badge badge-{{ $perguliran_i->sts->warna_status }}">{{ $perguliran_i->anggota->nia }}</span>
+                        <span
+                            class="badge badge-{{ $perguliran_i->sts->warna_status }}">{{ $perguliran_i->anggota->alamat_anggota }}</span>
+                        <span class="badge badge-{{ $perguliran_i->sts->warna_status }}">
+                            {{ $perguliran_i->anggota->d->sebutan_desa->sebutan_desa }}
+                            {{ $perguliran_i->anggota->d->nama_desa }}
+                        </span>
+                    </p>
+                </div>
+                @if ($perguliran_i->status == 'L' || $perguliran_i->status == 'H')
+                    <a href="/lunas_i/{{ $perguliran_i->id }}" class="btn btn-success btn-sm mb-0 text-nowrap">
+                        <i class="fa fa-check-circle"></i> Detail Pelunasan
+                    </a>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -189,7 +198,7 @@
             @if ($perguliran_i->status == 'L' || $perguliran_i->status == 'H')
                 @if ($perguliran_i->status != 'H')
                     <button class="btn btn-warning btn-sm float-end ms-2"
-                        onclick="window.open('/cetak_keterangan_lunas/{{ $perguliran_i->id }}')" type="button">
+                        onclick="window.open('/cetak_keterangan_lunas_i/{{ $perguliran_i->id }}')" type="button">
                         <i class="fa fa-print"></i> Cetak Keterangan Pelunasan
                     </button>
                 @endif
