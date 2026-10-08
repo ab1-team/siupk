@@ -38,10 +38,6 @@
                             @foreach ($kelompok->pinkel as $pinkel)
                                 <li class="list-group-item">
                                     @php
-                                        $saldo = 0;
-                                        if ($pinkel->saldo) {
-                                            $saldo = $pinkel->saldo->sum_pokok;
-                                        }
                                         $link = '/detail' . '/' . $pinkel->id;
                                         if ($pinkel->status == 'P') {
                                             $tgl = $pinkel->tgl_proposal;
@@ -49,20 +45,9 @@
                                         } elseif ($pinkel->status == 'V') {
                                             $tgl = $pinkel->tgl_verifikasi;
                                             $jumlah = $pinkel->verifikasi;
-                                        } elseif ($pinkel->status == 'W') {
-                                            $tgl = $pinkel->tgl_cair;
-                                            $jumlah = $pinkel->alokasi;
                                         } else {
                                             $tgl = $pinkel->tgl_cair;
                                             $jumlah = $pinkel->alokasi;
-
-                                            if ($pinkel->alokasi <= $saldo) {
-                                                $link = '/lunas' . '/' . $pinkel->id;
-                                            }
-                                        }
-
-                                        if ($pinkel->status == 'L' || $pinkel->status == 'H') {
-                                            $link = '/detail' . '/' . $pinkel->id;
                                         }
                                         $status = $pinkel->status;
 

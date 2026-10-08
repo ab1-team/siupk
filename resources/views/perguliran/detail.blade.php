@@ -210,20 +210,29 @@
 @section('content')
     <div class="card mb-3">
         <div class="card-body p-3">
-            <h5 class="mb-1">
-                Kelompok {{ $perguliran->kelompok->nama_kelompok }} Loan ID. {{ $perguliran->id }}
-                ({{ $perguliran->jpp->nama_jpp }})
-            </h5>
-            <p class="mb-0">
-                <span
-                    class="badge badge-{{ $perguliran->sts->warna_status }}">{{ $perguliran->kelompok->kd_kelompok }}</span>
-                <span
-                    class="badge badge-{{ $perguliran->sts->warna_status }}">{{ $perguliran->kelompok->alamat_kelompok }}</span>
-                <span class="badge badge-{{ $perguliran->sts->warna_status }}">
-                    {{ $perguliran->kelompok->d->sebutan_desa->sebutan_desa }}
-                    {{ $perguliran->kelompok->d->nama_desa }}
-                </span>
-            </p>
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="mb-1">
+                        Kelompok {{ $perguliran->kelompok->nama_kelompok }} Loan ID. {{ $perguliran->id }}
+                        ({{ $perguliran->jpp->nama_jpp }})
+                    </h5>
+                    <p class="mb-0">
+                        <span
+                            class="badge badge-{{ $perguliran->sts->warna_status }}">{{ $perguliran->kelompok->kd_kelompok }}</span>
+                        <span
+                            class="badge badge-{{ $perguliran->sts->warna_status }}">{{ $perguliran->kelompok->alamat_kelompok }}</span>
+                        <span class="badge badge-{{ $perguliran->sts->warna_status }}">
+                            {{ $perguliran->kelompok->d->sebutan_desa->sebutan_desa }}
+                            {{ $perguliran->kelompok->d->nama_desa }}
+                        </span>
+                    </p>
+                </div>
+                @if ($perguliran->status == 'L' || $perguliran->status == 'H')
+                    <a href="/lunas/{{ $perguliran->id }}" class="btn btn-success btn-sm mb-0 text-nowrap">
+                        <i class="fa fa-check-circle"></i> Detail Pelunasan
+                    </a>
+                @endif
+            </div>
         </div>
     </div>
 
