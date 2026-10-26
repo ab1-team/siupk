@@ -85,6 +85,8 @@
 @endif
 
 
-<script>
-    new Choices($('select#sub_laporan')[0])
-</script>
+@if ($file != 'calk_v2')
+    <script>
+        new Choices($('select#sub_laporan')[0])
+    </script>
+@endif
