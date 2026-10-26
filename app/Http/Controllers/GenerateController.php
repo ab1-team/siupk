@@ -17,11 +17,27 @@ use URL;
 
 class GenerateController extends Controller
 {
+    /**
+     * Fallback lokasi untuk environment lokal/dev (host .test / 127.0.0.1).
+     */
+    private const ID_KEC = 3;
+
     public function index()
     {
-        $kec = Kecamatan::where('web_kec', explode('//', URL::to('/'))[1])
-            ->orWhere('web_alternatif', explode('//', URL::to('/'))[1])
+        $host = explode('//', URL::to('/'))[1];
+
+        $kec = Kecamatan::where('web_kec', $host)
+            ->orWhere('web_alternatif', $host)
             ->first();
+
+        // Fallback untuk environment lokal/dev (host .test / 127.0.0.1 / localhost).
+        if (!$kec) {
+            $kec = Kecamatan::where('id', self::ID_KEC)->first();
+        }
+
+        if (!$kec) {
+            abort(404);
+        }
 
         Session::put('lokasi', $kec->id);
 
@@ -35,19 +51,7 @@ class GenerateController extends Controller
 
     public function individu()
     {
-        $database = env('DB_DATABASE', 'siupk_dbm');
-        $table = 'pinjaman_anggota_' . Session::get('lokasi');
-
-        $strukturTabel = \DB::select("
-            SELECT COLUMN_NAME
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = '$table' AND TABLE_SCHEMA='$database'
-            ORDER BY ORDINAL_POSITION;
-        ");
-
-        $struktur = array_map(function ($kolom) {
-            return $kolom->COLUMN_NAME;
-        }, $strukturTabel);
+        $struktur = $this->strukturTabel('pinjaman_anggota');
 
         return response()->json([
             'view' => view('generate.partials.individu')->with(compact('struktur'))->render()
@@ -56,23 +60,68 @@ class GenerateController extends Controller
 
     public function kelompok()
     {
-        $database = env('DB_DATABASE', 'siupk_dbm');
-        $table = 'pinjaman_kelompok_' . Session::get('lokasi');
-
-        $strukturTabel = \DB::select("
-            SELECT COLUMN_NAME
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = '$table' AND TABLE_SCHEMA='$database'
-            ORDER BY ORDINAL_POSITION;
-        ");
-
-        $struktur = array_map(function ($kolom) {
-            return $kolom->COLUMN_NAME;
-        }, $strukturTabel);
+        $struktur = $this->strukturTabel('pinjaman_kelompok');
 
         return response()->json([
             'view' => view('generate.partials.kelompok')->with(compact('struktur'))->render()
         ]);
+    }
+
+    /**
+     * Ambil daftar kolom dari tabel pinjaman milik lokasi aktif.
+     *
+     * Nama schema diambil dari koneksi aktif (bukan env()) supaya tetap benar
+     * saat `php artisan config:cache` aktif, karena .env tidak dimuat ulang
+     * ketika konfigurasi di-cache. Query memakai koneksi default sehingga
+     * otomatis menunjuk ke schema tenant yang sedang aktif.
+     */
+    private function strukturTabel(string $prefix): array
+    {
+        $database = \DB::connection()->getDatabaseName();
+        $table = $prefix . '_' . $this->lokasiAktif();
+
+        $strukturTabel = \DB::select("
+            SELECT COLUMN_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME = ? AND TABLE_SCHEMA = ?
+            ORDER BY ORDINAL_POSITION;
+        ", [$table, $database]);
+
+        return array_map(function ($kolom) {
+            return $kolom->COLUMN_NAME;
+        }, $strukturTabel);
+    }
+
+    /**
+     * Lokasi (id kecamatan) tenant yang sedang aktif.
+     */
+    private function lokasiAktif(): int
+    {
+        $lokasi = (int) Session::get('lokasi');
+
+        if ($lokasi > 0) {
+            return $lokasi;
+        }
+
+        // Session kosong (mis. user membuka /generate/individu langsung).
+        // Coba resolve dari host request, lalu fallback ke lokasi default.
+        $host = explode('//', URL::to('/'))[1];
+
+        $kec = Kecamatan::where('web_kec', $host)
+            ->orWhere('web_alternatif', $host)
+            ->first();
+
+        if (!$kec) {
+            $kec = Kecamatan::where('id', self::ID_KEC)->first();
+        }
+
+        if (!$kec) {
+            abort(404);
+        }
+
+        Session::put('lokasi', $kec->id);
+
+        return (int) $kec->id;
     }
 
     public function sinkronisasiKelompok($id)
