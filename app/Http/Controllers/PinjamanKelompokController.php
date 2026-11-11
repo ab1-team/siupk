@@ -1801,6 +1801,30 @@ class PinjamanKelompokController extends Controller
         }
     }
 
+    public function suratPermohonanIzin($id, $data)
+    {
+        $data['pinkel'] = PinjamanKelompok::where('id', $id)->with([
+            'jpp',
+            'kelompok',
+            'kelompok.d',
+            'kelompok.d.sebutan_desa',
+            'pinjaman_anggota',
+            'pinjaman_anggota.anggota',
+            'pinjaman_anggota.anggota.d',
+            'pinjaman_anggota.anggota.d.sebutan_desa',
+        ])->first();
+
+        $data['judul'] = 'Surat Permohonan Izin (' . $data['pinkel']->kelompok->nama_kelompok . ' - Loan ID. ' . $data['pinkel']->id . ')';
+        $view = view('perguliran.dokumen.surat_permohonan_izin', $data)->render();
+
+        if ($data['type'] == 'pdf') {
+            $pdf = PDF::loadHTML($view);
+            return $pdf->stream();
+        } else {
+            return $view;
+        }
+    }
+
     public function suratKuasa($id, $data)
     {
         $data['kec'] = Kecamatan::where('id', Session::get('lokasi'))->with('kabupaten')->first();

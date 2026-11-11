@@ -1942,6 +1942,27 @@ class PinjamanIndividuController extends Controller
     }
 
 
+    public function suratPermohonanIzin($id, $data)
+    {
+        $data['pinkel'] = PinjamanIndividu::where('id', $id)->with([
+            'jpp',
+            'anggota',
+            'anggota.d',
+            'anggota.d.sebutan_desa'
+        ])->first();
+
+        $data['judul'] = 'Surat Permohonan Izin (' . $data['pinkel']->anggota->namadepan . ' - Loan ID. ' . $data['pinkel']->id . ')';
+        $view = view('perguliran_i.dokumen.surat_permohonan_izin', $data)->render();
+
+        if ($data['type'] == 'pdf') {
+            $pdf = PDF::loadHTML($view);
+            return $pdf->stream();
+        } else {
+            return $view;
+        }
+    }
+
+
     public function suratpernyataansuami($id, $data)
     {
         $keuangan = new Keuangan;

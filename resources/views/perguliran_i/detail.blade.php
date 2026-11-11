@@ -120,6 +120,11 @@
             'withExcel' => false,
         ],
         [
+            'title' => 'Surat Permohonan Izin',
+            'file' => 'suratPermohonanIzin',
+            'withExcel' => false,
+        ],
+        [
             'title' => 'Daftar Hadir Pencairan',
             'file' => 'daftarHadirPencairan',
             'withExcel' => false,
