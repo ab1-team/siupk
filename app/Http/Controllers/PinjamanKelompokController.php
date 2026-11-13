@@ -2287,6 +2287,38 @@ class PinjamanKelompokController extends Controller
         }
     }
 
+    public function suratTagihanAnggota($id, $data)
+    {
+        $data['pinkel'] = PinjamanKelompok::where('id', $id)->with([
+            'jpp',
+            'kelompok',
+            'kelompok.d',
+            'kelompok.d.sebutan_desa',
+            'sis_pokok',
+            'pinjaman_anggota',
+            'pinjaman_anggota.anggota',
+            'pinjaman_anggota.anggota.d',
+            'pinjaman_anggota.anggota.d.sebutan_desa',
+            'pinjaman_anggota.sis_pokok',
+        ])->first();
+
+        $data['dir'] = User::where([
+            ['level', '1'],
+            ['jabatan', '1'],
+            ['lokasi', Session::get('lokasi')]
+        ])->first();
+
+        $data['judul'] = 'Surat Tagihan Anggota (' . $data['pinkel']->kelompok->nama_kelompok . ' - Loan ID. ' . $data['pinkel']->id . ')';
+        $view = view('perguliran.dokumen.tagihan_anggota', $data)->render();
+
+        if ($data['type'] == 'pdf') {
+            $pdf = PDF::loadHTML($view);
+            return $pdf->stream();
+        } else {
+            return $view;
+        }
+    }
+
     public function suratAhliWaris($id, $data)
     {
         $data['pinkel'] = PinjamanKelompok::where('id', $id)->with([

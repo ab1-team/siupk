@@ -198,6 +198,11 @@
             'withExcel' => false,
         ],
         [
+            'title' => 'Surat Tagihan Anggota',
+            'file' => 'suratTagihanAnggota',
+            'withExcel' => false,
+        ],
+        [
             'title' => 'Surat Ahli Waris',
             'file' => 'suratAhliWaris',
             'withExcel' => false,
