@@ -116,20 +116,22 @@
                 <td colspan="2" height="24">&nbsp;</td>
             </tr>
             <tr>
-                <td width="50%">&nbsp;</td>
+                <td width="50%" align="center">Mengetahui,</td>
                 <td width="50%" align="center">
                     {{ $kec->nama_kec }}, {{ Tanggal::tglLatin($tgl_cair_pinj) }}
                 </td>
             </tr>
             <tr>
-                <td>&nbsp;</td>
+                <td align="center">{{ $kec->sebutan_level_1 }} {{ $kec->nama_lembaga_sort }}</td>
                 <td align="center">Pemohon,</td>
             </tr>
             <tr>
                 <td colspan="2" height="50">&nbsp;</td>
             </tr>
             <tr>
-                <td>&nbsp;</td>
+                <td align="center">
+                    ({{ $dir->namadepan ?? '' }} {{ $dir->namabelakang ?? '' }})
+                </td>
                 <td align="center">
                     ({{ $pinj->anggota->namadepan }})
                 </td>
