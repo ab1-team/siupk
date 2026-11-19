@@ -19,6 +19,7 @@ use App\Http\Controllers\Kabupaten\AuthController as KabupatenAuthController;
 use App\Http\Controllers\Kabupaten\KabupatenController;
 use App\Http\Controllers\Kabupaten\LaporanController;
 use App\Http\Controllers\KelompokController;
+use App\Http\Controllers\LogoKabController;
 use App\Http\Controllers\PBController;
 use App\Http\Controllers\PelaporanController;
 use App\Http\Controllers\PinjamanAnggotaController;
@@ -132,6 +133,9 @@ Route::get('/pelaporan/mou', [PelaporanController::class, 'mou'])->middleware('a
 Route::get('/pelaporan/ts', [PelaporanController::class, 'ts'])->middleware('auth');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth');
+Route::get('/logo-kab', [LogoKabController::class, 'index'])->middleware('auth')->name('logoKab.index');
+Route::put('/logo-kab', [LogoKabController::class, 'update'])->middleware('auth')->name('logoKab.update');
+Route::delete('/logo-kab', [LogoKabController::class, 'destroy'])->middleware('auth')->name('logoKab.destroy');
 Route::get('/piutang_jasa', [DashboardController::class, 'piutang'])->middleware('auth');
 Route::get('/pelaporan/invoice/{invoice}', [PelaporanController::class, 'invoice']);
 Route::get('/simpan_saldo', [DashboardController::class, 'simpanSaldo'])->middleware('auth');

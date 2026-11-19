@@ -4,12 +4,22 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\Storage;
 
 class Kabupaten extends Authenticatable
 {
     use HasFactory;
 
     protected $table = 'kabupaten';
+
+    /**
+     * Apakah logo kabupaten deterministik sudah diunggah?
+     * File: storage/app/public/logo_kab/{id}.png
+     */
+    public function logoKabTersedia(): bool
+    {
+        return Storage::disk('public')->exists('logo_kab/' . $this->id . '.png');
+    }
 
     public function wilayah()
     {

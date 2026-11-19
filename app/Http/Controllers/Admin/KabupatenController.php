@@ -189,7 +189,7 @@ class KabupatenController extends Controller
             $data['bulan'] = '12';
         }
 
-        $data['logo'] = '1.png';
+        $data['logo'] = $data['kab']->id . '.png';
         $data['hari'] = date('t', strtotime($data['tahun'] . '-' . $data['bulan'] . '-01'));
         $data['tgl_kondisi'] = $data['tahun'] . '-' . $data['bulan'] . '-' . $data['hari'];
 

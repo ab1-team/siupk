@@ -118,9 +118,15 @@
         </style>
         <header>
             <table width="100%" style="border-bottom: 1px solid grey;">
+                @php
+                    $logoSrc = '../storage/app/public/logo/' . $logo;
+                    if (isset($kab) && $kab->logoKabTersedia()) {
+                        $logoSrc = '../storage/app/public/logo_kab/' . $kab->id . '.png';
+                    }
+                @endphp
                 <tr>
                     <td width="30">
-                        <img src="../storage/app/public/logo/{{ $logo }}" width="40" height="40"
+                        <img src="{{ $logoSrc }}" width="40" height="40"
                             alt="{{ $logo }}">
                     </td>
                     <td>
