@@ -109,11 +109,11 @@
         </div></td>
 		 <td class="style26"><div align="center" class="style9">
           <p>Pemberi Kuasa <br><br><br><br>
-          {{ $dir->namadepan }} {{$dir->namabelakang}}
+          {{$pinkel->anggota->namadepan}}
         </div></td>
         <td class="style26"><div align="center" class="style9">
           <p>Penerima Kuasa <br><br><br><br>
-{{$pinkel->anggota->namadepan}}        </p>
+          {{ $dir->namadepan }} {{$dir->namabelakang}}
          </p>
         </div></td>
       </tr>
