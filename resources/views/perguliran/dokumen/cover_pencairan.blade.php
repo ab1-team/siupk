@@ -73,13 +73,7 @@
 
     <main>
         <div class="center">
-            @php
-                $logoSrc = '../storage/app/public/logo/' . $logo;
-                if (isset($kab) && $kab->logoKabTersedia()) {
-                    $logoSrc = '../storage/app/public/logo_kab/' . $kab->id . '.png';
-                }
-            @endphp
-            <img src="{{ $logoSrc }}" width="290" alt="{{ $logo }}">
+            <img src="../storage/app/public/logo/{{ $logo }}" width="290" alt="{{ $logo }}">
             <div style="margin-top: 10px; font-size: 24px;">
                 Kelompok {{ $pinkel->kelompok->nama_kelompok }}
             </div>

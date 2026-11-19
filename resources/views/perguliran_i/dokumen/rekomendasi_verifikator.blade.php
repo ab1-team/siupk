@@ -78,10 +78,8 @@
             style="font-size: 11px; position: relative; top: -20px;">
             <tr class="b">
                 <td align="center">
-                    @if (isset($kab) && $kab->logoKabTersedia())
-                        <img src="../storage/app/public/logo_kab/{{ $kab->id }}.png" width="70"
-                            alt="{{ $kab->id }}.png" style="margin-bottom: 8px;">
-                    @endif
+                    <img src="../storage/app/public/logo/{{ $logo }}" width="70"
+                        alt="{{ $logo }}" style="margin-bottom: 8px;">
                 </td>
                 <td align="center">
                     <div style="font-size: 18px;">
