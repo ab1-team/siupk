@@ -37,16 +37,16 @@
         $ckp = $aset['cadangan_piutang'];
 
         $_risiko_kolek = $tk['sum_kolek'] == 0 ? $ckp : $tk['sum_kolek'];
-        $saldo_piutang_berisiko = round(($tk['nunggak_pokok'] / $tk['saldo_pokok']) * 100, 2);
-        $cadangan_kerugian = round(($ckp / $_risiko_kolek) * 100, 2);
-        $laba_bersih = round((($surplus - ($tk['sum_kolek'] - $ckp)) / $aset_produktif) * 100, 2);
+        $saldo_piutang_berisiko = $tk['saldo_pokok'] > 0 ? round(($tk['nunggak_pokok'] / $tk['saldo_pokok']) * 100, 2) : 0;
+        $cadangan_kerugian = $_risiko_kolek > 0 ? round(($ckp / $_risiko_kolek) * 100, 2) : 0;
+        $laba_bersih = $aset_produktif > 0 ? round((($surplus - ($tk['sum_kolek'] - $ckp)) / $aset_produktif) * 100, 2) : 0;
         if ($biaya == '0' || $pendapatan == '0') {
             $beban_operasional = 0;
         } else {
             $beban_operasional = round(($biaya / $pendapatan) * 100);
         }
 
-        $saldo_piuang = round(($tk['saldo_pokok'] / $aset_ekonomi) * 100);
+        $saldo_piuang = $aset_ekonomi > 0 ? round(($tk['saldo_pokok'] / $aset_ekonomi) * 100) : 0;
         if ($modal_awal == 0) {
             $kekayaan_bersih = round(($aset_ekonomi - $tk['sum_kolek']) * 100);
         } else {

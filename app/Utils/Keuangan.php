@@ -848,10 +848,17 @@ private function getTingkatKolek($kolek_bulan, $kolekData)
         ])->get();
         foreach ($rekening as $rek) {
             $saldo = $this->komSaldo($rek);
-            $aset_produktif += $saldo;
-            if ($rek->lev3 < '6') {
+
+            // CKP (lev3 = 4) adalah akun kontra piutang, bukan bagian aset produktif
+            if ($rek->lev3 != '4') {
+                $aset_produktif += $saldo;
+            }
+
+            // Aset produktif non investasi = aset produktif tanpa IUU (lev3 = 6)
+            if ($rek->lev3 != '4' && $rek->lev3 != '6') {
                 $aset_ekonomi += $saldo;
             }
+
             if ($rek->lev3 == '4') {
                 $cadangan_piutang += $saldo;
             }

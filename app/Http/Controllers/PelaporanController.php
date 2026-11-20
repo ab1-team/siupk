@@ -4033,7 +4033,7 @@ private function pemanfaat_aktif(array $data)
             $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
         }
 
-        $cacheKey = 'ojk_sehat_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        $cacheKey = 'ojk_sehat_v2_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
         if ($cached = $this->getOjkCacheOrNull($cacheKey, $data['type'])) {
             if ($data['type'] == 'pdf') {
                 return response($cached, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="Sehat.pdf"']);
@@ -5374,7 +5374,7 @@ private function kolek_per_kelompok_mingguan(array $data)
             $data['tgl'] = Tanggal::namaBulan($tgl) . ' ' . Tanggal::tahun($tgl);
         }
 
-        $cacheKey = 'ojk_sehatp4_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
+        $cacheKey = 'ojk_sehatp4_v2_' . Session::get('lokasi') . '_' . $data['tahun'] . '_' . $data['bulan'] . '_' . $data['hari'];
         if ($cached = $this->getOjkCacheOrNull($cacheKey, $data['type'])) {
             if ($data['type'] == 'pdf') {
                 return response($cached, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="SehatP4.pdf"']);
